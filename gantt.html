@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Gantt · Despacho de Campo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/supabase.js"></script>
+<script src="assets/js/coords.js"></script>
+<style>
+:root{--bg:#0a0a0f;--card:#15151f;--card2:#1a1a24;--s1:rgba(255,255,255,.06);--s2:rgba(255,255,255,.12);
+  --tx:#f5f3ea;--dm:#a8a596;--df:#6b6857;--gold:#f5c542;--gold2:#e0a818;--amber:#ffb020;--cream:#fff8e6;
+  --gn:#3ddc97;--bl:#4d9fff;--cy:#36d6e7;--pu:#b48cff;--re:#ff5d6c;
+  --FD:'Sora','Segoe UI',sans-serif;--FB:'Inter','Segoe UI',sans-serif;--LBL:210px;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--FB);background:var(--bg);color:var(--tx);min-height:100vh;-webkit-font-smoothing:antialiased}
+.page{padding:16px 18px 40px;max-width:1500px;margin:0 auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:14px 18px;margin-bottom:16px;
+  border-radius:14px;background:linear-gradient(120deg,rgba(245,197,66,.12),rgba(224,168,24,.04));
+  border:1px solid rgba(245,197,66,.18);box-shadow:0 20px 50px -22px rgba(0,0,0,.85)}
+h1{font-family:var(--FD);font-size:18px;font-weight:800;display:flex;align-items:center;gap:10px}
+h1 i{color:var(--gold)}
+.tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.btn{cursor:pointer;border:1px solid rgba(245,197,66,.4);color:#1a1405;font-family:var(--FB);font-size:13px;font-weight:700;
+  padding:8px 14px;border-radius:10px;display:inline-flex;align-items:center;gap:7px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));transition:.2s;text-decoration:none}
+.btn:hover{transform:translateY(-2px)}
+.btn.ghost{background:rgba(255,255,255,.04);color:var(--tx);border-color:var(--s2)}
+.btn.ghost:hover{background:rgba(245,197,66,.12)}
+.btn.sm{padding:6px 10px;font-size:12px}
+.dnav{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.3);border:1px solid var(--s1);border-radius:10px;padding:5px 8px}
+.dnav b{font-family:var(--FD);font-size:13px;min-width:150px;text-align:center}
+.dnav i{cursor:pointer;color:var(--dm);padding:5px 8px;border-radius:7px}
+.dnav i:hover{background:rgba(245,197,66,.14);color:var(--gold)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--dm);margin:0 3px 12px}
+.legend span i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:middle}
+
+/* GANTT */
+.crd{background:var(--card);border:1px solid var(--s1);border-radius:14px;box-shadow:0 20px 50px -22px rgba(0,0,0,.85)}
+.gwrap{overflow-x:auto;overflow-y:hidden}
+.ghead{display:flex;position:sticky;top:0;z-index:3;border-bottom:1px solid var(--s2);background:var(--card2)}
+.gcorner{width:var(--LBL);flex-shrink:0;position:sticky;left:0;z-index:4;background:var(--card2);border-right:1px solid var(--s2);
+  padding:10px 12px;font-family:var(--FD);font-size:11.5px;color:var(--dm);display:flex;align-items:center;gap:7px}
+.hcol{flex-shrink:0;text-align:left;font-size:10.5px;color:var(--df);padding:8px 0 8px 4px;border-left:1px solid rgba(255,255,255,.05)}
+.grow{display:flex;border-bottom:1px solid rgba(255,255,255,.05);min-height:48px}
+.grow:hover .glabel{background:rgba(245,197,66,.05)}
+.glabel{width:var(--LBL);flex-shrink:0;position:sticky;left:0;z-index:2;background:var(--card);border-right:1px solid var(--s2);
+  padding:8px 10px;display:flex;align-items:center;gap:8px}
+.glabel .dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.glabel .tn{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.glabel .rt{cursor:pointer;color:var(--dm);width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font-size:12px;border:1px solid var(--s1)}
+.glabel .rt:hover{color:var(--gold);border-color:var(--gold)}
+.gtrack{position:relative;flex:1;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.045) 0 1px,transparent 1px);background-size:var(--pxh) 100%}
+.blk{position:absolute;height:30px;border:1px solid;border-radius:7px;padding:0 7px;display:flex;align-items:center;gap:5px;
+  font-size:11px;white-space:nowrap;overflow:hidden;cursor:pointer;transition:.12s;color:var(--tx)}
+.blk:hover{filter:brightness(1.25);z-index:2}
+.blk.sel{outline:2px solid var(--gold);outline-offset:1px;z-index:3}
+.blk b{font-family:var(--FD);font-weight:700}
+.emptyrow{color:var(--df);font-size:11px;padding:14px;text-align:center}
+
+/* Não agendados */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{cursor:pointer;background:rgba(255,176,32,.1);border:1px solid rgba(255,176,32,.35);color:var(--amber);
+  border-radius:20px;padding:6px 12px;font-size:11.5px;display:flex;align-items:center;gap:7px}
+.chip:hover{background:rgba(255,176,32,.2)}
+.chip b{color:var(--cream)}
+
+/* Bottom: mapa + detalhe */
+.bottom{display:grid;grid-template-columns:1fr 320px;gap:14px;margin-top:16px}
+#map{height:460px;border-radius:13px;overflow:hidden;border:1px solid var(--s1)}
+.detail{background:var(--card);border:1px solid var(--s1);border-radius:13px;padding:16px}
+.detail h3{font-family:var(--FD);font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.detail h3 i{color:var(--gold)}
+.dl{font-size:12.5px;color:var(--dm);line-height:1.9}
+.dl b{color:var(--tx)}
+.rotainfo{margin-top:12px;font-size:12px;color:var(--gold);background:rgba(245,197,66,.08);border-left:2px solid var(--gold);padding:8px 11px;border-radius:0 8px 8px 0;min-height:18px}
+.sec{font-family:var(--FD);font-size:13px;font-weight:700;margin:20px 3px 10px;display:flex;align-items:center;gap:8px}
+.sec i{color:var(--gold)}
+.leaflet-popup-content-wrapper{background:#15151f;color:var(--tx);border-radius:10px;border:1px solid var(--s2)}
+.leaflet-popup-tip{background:#15151f}
+.mp b{font-family:var(--FD);color:var(--gold)}
+
+/* modal agendar */
+.ov{position:fixed;inset:0;z-index:2000;background:rgba(4,4,8,.72);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:18px}
+.ov.on{display:flex}
+.modal{width:100%;max-width:420px;background:var(--card);border:1px solid var(--s2);border-radius:16px;padding:20px}
+.modal h3{font-family:var(--FD);font-size:16px;margin-bottom:14px;display:flex;align-items:center;gap:9px}
+.modal h3 i{color:var(--gold)}
+.modal label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--df);margin:12px 0 5px}
+.modal input{width:100%;padding:10px;border-radius:10px;background:#0c0c12;border:1px solid var(--s1);color:var(--tx);font-family:var(--FB);font-size:13px;outline:none}
+.modal .row{display:flex;gap:10px;margin-top:18px}
+.modal .row .btn{flex:1;justify-content:center}
+#agMsg{font-size:12px;margin-top:8px;min-height:15px}
+#agMsg.bad{color:var(--re)}
+@media(max-width:900px){.bottom{grid-template-columns:1fr}#map{height:340px}}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1><i class="fa-solid fa-bars-staggered"></i> Despacho de Campo — Gantt</h1>
+    <div class="tools">
+      <div class="dnav">
+        <i class="fa-solid fa-chevron-left" onclick="mudarDia(-1)"></i>
+        <b id="lblDia">—</b>
+        <i class="fa-solid fa-chevron-right" onclick="mudarDia(1)"></i>
+      </div>
+      <input type="date" id="inpDia" onchange="irData()" style="padding:7px 9px;border-radius:9px;background:#0c0c12;border:1px solid var(--s1);color:var(--tx);font-family:var(--FB);font-size:12.5px">
+      <button class="btn ghost sm" onclick="hoje()"><i class="fa-solid fa-calendar-day"></i> Hoje</button>
+      <button class="btn ghost sm" onclick="carregar()"><i class="fa-solid fa-rotate"></i> Atualizar</button>
+    </div>
+  </header>
+
+  <div class="legend">
+    <span><i style="background:#ffb020"></i>Agendado / pendente</span>
+    <span><i style="background:#36d6e7"></i>Deslocamento</span>
+    <span><i style="background:#b48cff"></i>Execução</span>
+    <span><i style="background:#3ddc97"></i>Encerrado</span>
+    <span style="color:var(--df)">· Clique numa atividade para ver no mapa · <i class="fa-solid fa-route"></i> na linha do técnico gera a rota</span>
+  </div>
+
+  <div class="crd">
+    <div class="gwrap" id="gwrap">
+      <div class="ghead" id="ghead"></div>
+      <div id="grows"></div>
+    </div>
+  </div>
+
+  <div class="sec"><i class="fa-solid fa-clock-rotate-left"></i> Sem horário <small style="color:var(--df);font-weight:400;font-family:var(--FB)">— atividades atribuídas a técnicos e ainda não agendadas (clique para agendar)</small></div>
+  <div class="chips" id="chips"></div>
+
+  <div class="bottom">
+    <div id="map"></div>
+    <div class="detail">
+      <h3><i class="fa-solid fa-circle-info"></i> Atividade</h3>
+      <div class="dl" id="detalhe">Selecione uma atividade no Gantt ou no mapa.</div>
+      <div class="rotainfo" id="rotaInfo"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal agendar -->
+<div class="ov" id="ovAg">
+  <div class="modal">
+    <h3><i class="fa-regular fa-calendar-check"></i> Agendar atividade <span id="agNum" style="color:var(--gold)"></span></h3>
+    <label>Data</label>
+    <input type="date" id="agData">
+    <label>Hora de início</label>
+    <input type="time" id="agHora" value="09:00">
+    <label>Duração (minutos)</label>
+    <input type="number" id="agDur" min="15" step="15" value="60">
+    <div class="row">
+      <button class="btn ghost" onclick="fecharAg()">Cancelar</button>
+      <button class="btn" id="btnAg" onclick="confirmarAg()"><i class="fa-solid fa-check"></i> Agendar</button>
+    </div>
+    <div id="agMsg"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+<script src="assets/js/nav.js"></script>
+<script>
+var H0=6,H1=20,PXH=64;            // janela 06:00–20:00, 64px/hora
+var DIA=isoHoje(),TECNICOS=[],CHAMADOS=[];
+var MAP=null,ML=null,ROTA=null,MK={},SEL=null,agId=null;
+
+function nm(s){return(s||"").toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," ").trim();}
+function cap(s){return(s||"").toLowerCase().replace(/\b\w/g,function(c){return c.toUpperCase();});}
+function isoHoje(){var d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+function estado(st){var n=nm(st);if(/encerrad|finaliz|conclu|resolvid/.test(n))return"encerrado";if(/execu/.test(n))return"execucao";if(/desloca/.test(n))return"deslocamento";return"pendente";}
+function corEstado(e){return e==="encerrado"?"#3ddc97":e==="execucao"?"#b48cff":e==="deslocamento"?"#36d6e7":"#ffb020";}
+function coordDe(mun){return (window.COORDS_PI&&window.COORDS_PI[nm(mun)])||null;}
+function diaLocalDe(iso){if(!iso)return null;var d=new Date(iso);if(isNaN(d))return null;return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+function minInicio(iso){var d=new Date(iso);return (d.getHours()-H0)*60+d.getMinutes();}
+function fmtHora(iso){var d=new Date(iso);return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);}
+
+function mudarDia(n){var d=new Date(DIA+"T12:00:00");d.setDate(d.getDate()+n);DIA=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);render();}
+function irData(){var v=document.getElementById("inpDia").value;if(v){DIA=v;render();}}
+function hoje(){DIA=isoHoje();render();}
+
+function carregar(){
+  Promise.all([fetchTecnicos(),fetchChamadosAtribuidos()]).then(function(r){
+    TECNICOS=(r[0]||[]).filter(function(t){return t.ativo!==false;});
+    CHAMADOS=r[1]||[];
+    render();
+  }).catch(function(e){document.getElementById("grows").innerHTML='<div class="emptyrow">Erro ao carregar: '+(e.message||e)+'</div>';});
+}
+
+function render(){
+  // rótulo do dia
+  var dd=new Date(DIA+"T12:00:00");
+  document.getElementById("lblDia").textContent=dd.toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"short"});
+  document.getElementById("inpDia").value=DIA;
+  document.documentElement.style.setProperty("--pxh",PXH+"px");
+
+  // cabeçalho de horas
+  var head='<div class="gcorner"><i class="fa-solid fa-user-gear"></i> Técnico</div>';
+  for(var h=H0;h<H1;h++)head+='<div class="hcol" style="width:'+PXH+'px">'+h+":00</div>";
+  document.getElementById("ghead").innerHTML=head;
+
+  // linhas por técnico
+  var rows="";
+  TECNICOS.forEach(function(t){
+    var acts=CHAMADOS.filter(function(c){return c.tecnico===t.nome && diaLocalDe(c.agendado_em)===DIA;});
+    acts.sort(function(a,b){return new Date(a.agendado_em)-new Date(b.agendado_em);});
+    // atribui "lanes" para não sobrepor
+    var lanes=[];
+    acts.forEach(function(c){var s=minInicio(c.agendado_em),e=s+(c.duracao_min||60);var l=-1;for(var i=0;i<lanes.length;i++){if(lanes[i]<=s){l=i;break;}}if(l<0){l=lanes.length;lanes.push(e);}else lanes[l]=e;c._lane=l;});
+    var nl=Math.max(1,lanes.length),rowH=nl*34+8;
+    var blocks=acts.map(function(c){
+      var s=minInicio(c.agendado_em);var left=Math.max(0,s/60*PXH);var w=Math.max(36,(c.duracao_min||60)/60*PXH);
+      var col=corEstado(estado(c.status));
+      var titulo="#"+c.num_chamado+" · "+fmtHora(c.agendado_em)+" · "+(c.tipo_atendimento||"")+" · "+cap(c.municipio||"");
+      return '<div class="blk'+(SEL===c.id?' sel':'')+'" data-id="'+c.id+'" style="left:'+left+'px;width:'+w+'px;top:'+(c._lane*34+5)+'px;background:'+col+'26;border-color:'+col+'" onclick="selecionar('+c.id+')" title="'+titulo.replace(/"/g,"&quot;")+'"><b>#'+c.num_chamado+'</b> '+((c.tipo_atendimento||"").substring(0,22))+'</div>';
+    }).join("");
+    var totalW=(H1-H0)*PXH;
+    rows+='<div class="grow" style="height:'+rowH+'px">'+
+      '<div class="glabel"><span class="dot" style="background:'+(t.cor||"#4d9fff")+'"></span><span class="tn" title="'+(t.nome||"")+'">'+(t.nome||"—")+'</span>'+
+        '<span class="rt" title="Gerar rota do dia" onclick="rota(\''+(t.nome||"").replace(/'/g,"\\'")+'\')"><i class="fa-solid fa-route"></i></span></div>'+
+      '<div class="gtrack" style="height:'+rowH+'px;width:'+totalW+'px">'+blocks+'</div></div>';
+  });
+  if(!TECNICOS.length)rows='<div class="emptyrow">Nenhum técnico ativo. Cadastre em Configurações → Técnicos.</div>';
+  document.getElementById("grows").innerHTML=rows;
+
+  renderChips();
+  renderMapa();
+}
+
+function renderChips(){
+  var pend=CHAMADOS.filter(function(c){return !c.agendado_em && estado(c.status)!=="encerrado";});
+  var box=document.getElementById("chips");
+  if(!pend.length){box.innerHTML='<div class="emptyrow" style="text-align:left">Nada pendente de agendamento. 👍</div>';return;}
+  box.innerHTML=pend.map(function(c){
+    return '<div class="chip" onclick="abrirAg('+c.id+')"><b>#'+c.num_chamado+'</b> '+cap(c.municipio||"—")+' · '+(c.tecnico||"—")+' <i class="fa-regular fa-calendar-plus"></i></div>';
+  }).join("");
+}
+
+/* ===== MAPA ===== */
+function initMapa(){
+  if(MAP||typeof L==="undefined")return;
+  MAP=L.map("map",{zoomControl:true,attributionControl:false,minZoom:5}).setView([-7.2,-42.8],6.4);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:14,subdomains:"abcd"}).addTo(MAP);
+}
+function renderMapa(){
+  initMapa();if(!MAP)return;
+  if(ML)ML.remove();ML=L.layerGroup().addTo(MAP);MK={};
+  var doDia=CHAMADOS.filter(function(c){return diaLocalDe(c.agendado_em)===DIA;});
+  var bounds=[];
+  doDia.forEach(function(c){
+    var co=coordDe(c.municipio);if(!co)return;
+    var col=corEstado(estado(c.status));
+    var mk=L.circleMarker(co,{radius:8,color:col,weight:2,fillColor:col,fillOpacity:.5});
+    mk.bindPopup('<div class="mp"><b>#'+c.num_chamado+'</b> · '+fmtHora(c.agendado_em)+'<br>'+cap(c.municipio||"")+'<br>'+(c.tecnico||"")+'<br>'+(c.status||"")+'</div>');
+    mk.on("click",function(){selecionar(c.id,true);});
+    ML.addLayer(mk);MK[c.id]=mk;bounds.push(co);
+  });
+  if(bounds.length){setTimeout(function(){MAP.invalidateSize();try{MAP.fitBounds(bounds,{maxZoom:9,padding:[30,30]});}catch(e){}},150);}
+}
+
+/* ===== SELEÇÃO ===== */
+function selecionar(id,fromMap){
+  SEL=id;var c=CHAMADOS.find(function(x){return x.id===id;});if(!c)return;
+  document.querySelectorAll(".blk").forEach(function(b){b.classList.toggle("sel",b.getAttribute("data-id")==String(id));});
+  var mk=MK[id];if(mk){MAP.setView(mk.getLatLng(),Math.max(MAP.getZoom(),8),{animate:true});mk.openPopup();}
+  var co=coordDe(c.municipio);
+  document.getElementById("detalhe").innerHTML=
+    '<b>#'+c.num_chamado+'</b> — '+(c.escola||"—")+'<br>'+
+    'Município: <b>'+cap(c.municipio||"—")+'</b><br>'+
+    'Técnico: <b>'+(c.tecnico||"—")+'</b><br>'+
+    'Tipo: '+(c.tipo_atendimento||"—")+'<br>'+
+    'Status: <b>'+(c.status||"—")+'</b><br>'+
+    (c.agendado_em?('Agendado: <b>'+fmtHora(c.agendado_em)+'</b> · '+(c.duracao_min||60)+' min<br>'):'Sem horário<br>')+
+    (co?'':'<span style="color:var(--re)">⚠ município sem coordenada no mapa</span><br>')+
+    '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'+
+      '<button class="btn ghost sm" onclick="abrirAg('+c.id+')"><i class="fa-regular fa-calendar-check"></i> '+(c.agendado_em?'Reagendar':'Agendar')+'</button>'+
+      (c.agendado_em?'<button class="btn ghost sm" onclick="removerHorario('+c.id+')"><i class="fa-solid fa-xmark"></i> Remover horário</button>':'')+
+    '</div>';
+}
+
+/* ===== AGENDAR ===== */
+function abrirAg(id){agId=id;var c=CHAMADOS.find(function(x){return x.id===id;});
+  document.getElementById("agNum").textContent="#"+((c&&c.num_chamado)||"");
+  document.getElementById("agData").value=c&&c.agendado_em?diaLocalDe(c.agendado_em):DIA;
+  document.getElementById("agHora").value=c&&c.agendado_em?fmtHora(c.agendado_em):"09:00";
+  document.getElementById("agDur").value=(c&&c.duracao_min)||60;
+  var m=document.getElementById("agMsg");m.className="";m.textContent="";
+  document.getElementById("ovAg").classList.add("on");}
+function fecharAg(){document.getElementById("ovAg").classList.remove("on");agId=null;}
+function confirmarAg(){
+  var data=document.getElementById("agData").value,hora=document.getElementById("agHora").value,dur=parseInt(document.getElementById("agDur").value,10)||60;
+  var m=document.getElementById("agMsg");m.className="";
+  if(!data||!hora){m.className="bad";m.textContent="Informe data e hora.";return;}
+  var iso=new Date(data+"T"+hora+":00").toISOString();
+  var btn=document.getElementById("btnAg");btn.disabled=true;
+  agendarChamado(agId,iso,dur).then(function(rec){
+    var i=CHAMADOS.findIndex(function(c){return c.id===agId;});if(i>=0)CHAMADOS[i]=rec;
+    btn.disabled=false;fecharAg();DIA=diaLocalDe(iso);render();
+  }).catch(function(e){btn.disabled=false;m.className="bad";m.textContent="Erro: "+(e.message||e);});
+}
+function removerHorario(id){
+  if(!confirm("Remover o horário desta atividade?"))return;
+  desagendarChamado(id).then(function(rec){var i=CHAMADOS.findIndex(function(c){return c.id===id;});if(i>=0)CHAMADOS[i]=rec;SEL=null;render();document.getElementById("detalhe").innerHTML="Horário removido.";})
+    .catch(function(e){alert("Erro: "+(e.message||e));});
+}
+
+/* ===== ROTA (OSRM) ===== */
+function rota(nome){
+  var acts=CHAMADOS.filter(function(c){return c.tecnico===nome && diaLocalDe(c.agendado_em)===DIA;})
+    .sort(function(a,b){return new Date(a.agendado_em)-new Date(b.agendado_em);});
+  var pts=[],semCoord=0;
+  acts.forEach(function(c){var co=coordDe(c.municipio);if(co)pts.push(co);else semCoord++;});
+  var info=document.getElementById("rotaInfo");
+  if(pts.length<2){info.textContent="Rota de "+nome+": precisa de 2+ atividades agendadas com coordenada de município.";return;}
+  info.textContent="Calculando rota de "+nome+"...";
+  var coordStr=pts.map(function(p){return p[1]+","+p[0];}).join(";");
+  fetch("https://router.project-osrm.org/route/v1/driving/"+coordStr+"?overview=full&geometries=geojson")
+    .then(function(r){return r.json();})
+    .then(function(j){
+      if(!j.routes||!j.routes.length){info.textContent="Rota não encontrada.";return;}
+      var latlngs=j.routes[0].geometry.coordinates.map(function(c){return [c[1],c[0]];});
+      if(ROTA)ROTA.remove();
+      ROTA=L.polyline(latlngs,{color:"#f5c542",weight:4,opacity:.9}).addTo(MAP);
+      try{MAP.fitBounds(ROTA.getBounds().pad(0.2));}catch(e){}
+      var km=(j.routes[0].distance/1000).toFixed(1),min=Math.round(j.routes[0].duration/60);
+      info.innerHTML="<b>"+nome+"</b>: "+pts.length+" paradas · "+km+" km · ~"+min+" min"+(semCoord?" · "+semCoord+" sem coord.":"")+" <span style='color:var(--df)'>(OSRM/OSM)</span>";
+    })
+    .catch(function(e){info.textContent="Erro ao gerar rota: "+e;});
+}
+
+/* ===== INIT ===== */
+window.addEventListener("load",function(){
+  requireAuth().then(function(user){ if(!user)return; carregar(); });
+});
+</script>
+</body>
+</html>

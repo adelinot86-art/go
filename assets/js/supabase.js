@@ -145,6 +145,22 @@
       .order('agendado_em', { ascending: true, nullsFirst: false })
       .then(function (res) { if (res.error) throw res.error; return res.data || []; });
   };
+  // Agenda/reagenda uma atividade (Gantt). agendadoIso = ISO completo; dur em minutos.
+  global.agendarChamado = function (id, agendadoIso, duracaoMin) {
+    return sb.from('chamados').update({ agendado_em: agendadoIso, duracao_min: duracaoMin }).eq('id', id).select().single()
+      .then(function (res) { if (res.error) throw res.error; return res.data; });
+  };
+  // Remove o horário agendado (volta para "sem horário").
+  global.desagendarChamado = function (id) {
+    return sb.from('chamados').update({ agendado_em: null }).eq('id', id).select().single()
+      .then(function (res) { if (res.error) throw res.error; return res.data; });
+  };
+  // Todos os chamados atribuídos a técnicos (registros crus) — base do Gantt.
+  global.fetchChamadosAtribuidos = function () {
+    return sb.from('chamados').select('*').not('tecnico', 'is', null)
+      .then(function (res) { if (res.error) throw res.error; return (res.data || []).filter(function (c) { return String(c.tecnico || '').trim() && c.tecnico !== '-'; }); });
+  };
+
   // Agenda de um dia (todos os técnicos) — para o Gantt. diaISO = 'aaaa-mm-dd'.
   global.fetchAgenda = function (diaISO) {
     var ini = diaISO + 'T00:00:00', fim = diaISO + 'T23:59:59';

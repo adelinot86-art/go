@@ -1,0 +1,32 @@
+/* Coordenadas (centro) dos municípios do Piauí — chave normalizada (minúsculo, sem acento).
+   Usado no mapa do dashboard e do Gantt. window.COORDS_PI */
+window.COORDS_PI = {
+"alvorada do gurgueia":[-8.4119,-43.7708],"barreiras do piaui":[-9.5,-42.8],"barro duro":[-5.8294,-42.5],
+"beneditinos":[-5.4506,-42.3661],"buriti dos lopes":[-3.1739,-41.8669],"campo maior":[-4.8278,-42.1686],
+"teresina":[-5.0892,-42.8019],"parnaiba":[-2.9055,-41.7763],"picos":[-7.0768,-41.4669],
+"floriano":[-6.7677,-43.0224],"piripiri":[-4.2733,-41.777],"barras":[-4.2444,-42.2944],
+"altos":[-5.0383,-42.4608],"jose de freitas":[-4.7558,-42.5747],"uniao":[-4.5856,-42.8625],
+"oeiras":[-7.0253,-42.1308],"sao raimundo nonato":[-9.0153,-42.6994],"corrente":[-10.4433,-45.1614],
+"bom jesus":[-9.0744,-44.3589],"urucui":[-7.2294,-44.5561],"esperantina":[-3.9019,-42.2336],
+"pedro ii":[-4.4256,-41.4561],"valenca do piaui":[-6.4061,-41.7456],"sao joao do piaui":[-8.3581,-42.2461],
+"dom inocencio":[-8.5594,-41.9744],"paulistana":[-8.1339,-41.1436],"simplicio mendes":[-7.8506,-41.9097],
+"jaicos":[-7.3597,-41.1369],"fronteiras":[-7.085,-40.6147],"castelo do piaui":[-5.3219,-41.5525],
+"luis correia":[-2.8792,-41.6678],"cocal":[-3.4711,-41.5586],"agua branca":[-5.8917,-42.6361],
+"regeneracao":[-6.2369,-42.6889],"amarante":[-6.2406,-42.8511],"miguel alves":[-4.1672,-42.8961],
+"batalha":[-4.0286,-42.0772],"luzilandia":[-3.4564,-42.3697],"elesbao veloso":[-6.2025,-42.1389],
+"inhuma":[-6.67,-41.705],"sao pedro do piaui":[-5.9147,-42.7186],"palmeirais":[-5.9803,-43.0658],
+"guadalupe":[-6.7886,-43.5642],"angical do piaui":[-6.0875,-42.7392],"nazare do piaui":[-6.9744,-42.6878],
+"itaueira":[-7.5969,-43.0258],"colonia do piaui":[-7.2922,-41.9747],"sao lourenco do piaui":[-9.1747,-42.5419],
+"caracol":[-9.2778,-43.3328],"guaribas":[-9.3933,-43.6981],"queimada nova":[-8.5786,-41.405],
+"patos do piaui":[-7.6,-41.18],"marcolandia":[-7.4419,-40.6694],"bocaina":[-6.9897,-41.3275],
+"gilbues":[-9.8331,-45.345],"canto do buriti":[-8.11,-42.945],"bertolinia":[-7.6361,-43.9514],
+"eliseu martins":[-8.0992,-43.665],"baixa grande do ribeiro":[-7.8636,-45.2308],"porto":[-3.8917,-42.7039],
+"sao joao da fronteira":[-4.0928,-41.2592],"brasileira":[-4.1339,-41.7847],"juazeiro do piaui":[-5.1697,-41.7036],
+"santa cruz do piaui":[-7.1789,-41.7686],"campo alegre do fidalgo":[-8.4719,-41.8392],"joao costa":[-8.5008,-42.4467],
+"fartura do piaui":[-8.7064,-42.6589],"bonfim do piaui":[-9.1742,-42.4778],"sao braz do piaui":[-9.0,-42.5],
+"tamboril":[-3.2761,-41.6922],"sao felix do piaui":[-5.93,-41.54],"sao miguel da baixa grande":[-5.65,-42.0],
+"hugo napoleao":[-5.9919,-42.5589],"pimenteiras":[-6.245,-41.4253],"bonfim":[-9.1742,-42.4778],
+"ribeiro goncalves":[-7.5572,-45.2436],"sebastiao leal":[-7.55,-44.18],"sigefredo pacheco":[-4.9011,-41.7064],
+"boa hora":[-4.3169,-42.1356],"capitao de campos":[-4.4569,-41.9433],"agricolandia":[-5.7967,-42.6628],
+"matias olimpio":[-3.7128,-42.5828],"joaquim pires":[-3.4889,-42.1947]
+};
