@@ -136,14 +136,14 @@ footer{text-align:center;color:var(--df);font-size:11px;margin-top:50px;line-hei
 .ms-opt span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* KPIs */
-.kG{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:14px}
+.kG{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:11px}
 .kC{position:relative;overflow:hidden;background:linear-gradient(145deg,var(--card2),var(--card));
-  border:1px solid var(--s1);border-radius:15px;padding:17px;transition:.26s;opacity:0;transform:translateY(12px)}
+  border:1px solid var(--s1);border-radius:13px;padding:13px 14px;transition:.26s;opacity:0;transform:translateY(12px)}
 .kC.in{opacity:1;transform:none}
-.kC:hover{transform:translateY(-5px);border-color:rgba(245,197,66,.35);box-shadow:0 24px 46px -24px rgba(0,0,0,.9)}
-.kC .ki{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-size:17px;margin-bottom:12px}
-.kC .kv{font-family:var(--FD);font-size:29px;font-weight:800;line-height:1;color:var(--cream)}
-.kC .kl{color:var(--dm);font-size:11.5px;margin-top:6px;line-height:1.35}
+.kC:hover{transform:translateY(-4px);border-color:rgba(245,197,66,.35);box-shadow:0 24px 46px -24px rgba(0,0,0,.9)}
+.kC .ki{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-size:14px;margin-bottom:9px}
+.kC .kv{font-family:var(--FD);font-size:22px;font-weight:800;line-height:1;color:var(--cream)}
+.kC .kl{color:var(--dm);font-size:10.5px;margin-top:5px;line-height:1.3}
 .kC .gw{position:absolute;right:-26px;bottom:-26px;width:100px;height:100px;border-radius:50%;filter:blur(13px);opacity:.16}
 .Cgold .ki{background:rgba(245,197,66,.16);color:var(--gold)} .Cgold .gw{background:var(--gold)}
 .Cgn .ki{background:rgba(61,220,151,.16);color:var(--gn)} .Cgn .gw{background:var(--gn)}
@@ -158,7 +158,7 @@ footer{text-align:center;color:var(--df);font-size:11px;margin-top:50px;line-hei
 .crd h4{font-family:var(--FD);font-size:14px;font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:8px}
 .crd h4 i{color:var(--gold);font-size:12px}
 .crd .ht{color:var(--df);font-size:11px;margin-bottom:15px;line-height:1.4}
-.cb{position:relative;height:290px} .cb.T{height:360px}
+.cb{position:relative;height:210px} .cb.T{height:260px}
 .insight{margin-top:12px;font-size:11.5px;color:var(--gold);background:rgba(245,197,66,.07);
   border-left:2px solid var(--gold);padding:8px 11px;border-radius:0 8px 8px 0;line-height:1.45}
 
@@ -267,9 +267,6 @@ footer{text-align:center;color:var(--df);font-size:11px;margin-top:50px;line-hei
     </div>
   </header>
 
-  <div class="sec"><span class="br"></span> Resumo da base <small>aba Chamados</small></div>
-  <div class="sumG" id="sumG"></div>
-
   <div class="flt">
     <div class="fh">
       <h3><i class="fa-solid fa-sliders"></i> Filtros</h3>
@@ -305,14 +302,10 @@ footer{text-align:center;color:var(--df);font-size:11px;margin-top:50px;line-hei
   </div>
 
   <div class="sec"><span class="br"></span> Análises operacionais</div>
-  <div class="G G2">
+  <div class="G G3">
     <div class="crd"><h4><i class="fa-solid fa-warehouse"></i> Base de Atendimento × Chamados</h4><p class="ht">chamados ativos por base (exclui finalizados)</p><div class="cb T"><canvas id="cBase"></canvas></div><div class="insight" id="insBase"></div></div>
     <div class="crd"><h4><i class="fa-solid fa-circle-notch"></i> Distribuição por status</h4><p class="ht">situação atual dos chamados</p><div class="cb T"><canvas id="cStatus"></canvas></div><div class="insight" id="insStatus"></div></div>
-  </div>
-  <div class="G G3" style="margin-top:16px">
-    <div class="crd"><h4><i class="fa-solid fa-triangle-exclamation"></i> Prioridade</h4><p class="ht">alta × média</p><div class="cb"><canvas id="cPrio"></canvas></div></div>
-    <div class="crd"><h4><i class="fa-solid fa-layer-group"></i> Departamento</h4><p class="ht">tipo de serviço</p><div class="cb"><canvas id="cDep"></canvas></div></div>
-    <div class="crd"><h4><i class="fa-solid fa-screwdriver-wrench"></i> Tipo de atendimento</h4><p class="ht">natureza do serviço</p><div class="cb"><canvas id="cTipo"></canvas></div></div>
+    <div class="crd"><h4><i class="fa-solid fa-layer-group"></i> Departamento</h4><p class="ht">tipo de serviço</p><div class="cb T"><canvas id="cDep"></canvas></div></div>
   </div>
   <div class="G G2" style="margin-top:16px">
     <div class="crd"><h4><i class="fa-solid fa-user-gear"></i> Chamados por técnico</h4><p class="ht">carga ativa (exclui finalizados)</p><div class="cb T"><canvas id="cTec"></canvas></div><div class="insight" id="insTec"></div></div>
@@ -444,7 +437,7 @@ function buildSum(){
     ["Escolas c/ INEP",escSet.size,"atendidas"],
     ["Departamentos",uniq2(c,function(o){return g(o,"Departamento");}),"de servi\u00e7o"]
   ];
-  document.getElementById("sumG").innerHTML=items.map(function(x){return'<div class="sC"><div class="sl">'+x[0]+'</div><div class="sv">'+x[1]+'</div><div class="ss">'+x[2]+'</div></div>';}).join("");
+  var sg=document.getElementById("sumG");if(sg)sg.innerHTML=items.map(function(x){return'<div class="sC"><div class="sl">'+x[0]+'</div><div class="sv">'+x[1]+'</div><div class="ss">'+x[2]+'</div></div>';}).join("");
 }
 
 /* ===== FILTROS (topo) ===== */
@@ -666,14 +659,9 @@ function bCharts(d){
   mkC("cStatus",{type:"doughnut",data:{labels:Object.keys(sm),datasets:[{data:Object.values(sm),backgroundColor:MIX,borderColor:"#15151f",borderWidth:3}]},options:{plugins:{legend:{position:"bottom",labels:{boxWidth:10,padding:11}}},cutout:"60%"}});
   var pend=d.filter(function(o){return sCls(g(o,"Status"))!=="concluido";}).length;
   setIns("insStatus",pend+" de "+d.length+" chamados ainda não concluídos ("+(d.length?Math.round(pend/d.length*100):0)+"%).");
-  var pm={Alta:0,"M\u00e9dia":0,Baixa:0,Urgente:0};d.forEach(function(o){var p=pCls(g(o,"Prioridade"));if(pm[p]!=null)pm[p]++;});
-  mkC("cPrio",{type:"doughnut",data:{labels:Object.keys(pm),datasets:[{data:Object.values(pm),backgroundColor:["#ff5d6c","#ffb020","#3ddc97","#b48cff"],borderColor:"#15151f",borderWidth:3}]},options:{plugins:{legend:{position:"bottom",labels:{boxWidth:10,padding:10}}},cutout:"60%"}});
   var dm=tly(d,function(o){return shortDep(g(o,"Departamento"))||null;});
   var dt=topN(dm,8);
   mkC("cDep",{type:"bar",data:{labels:dt.map(function(x){return x[0];}),datasets:[{data:dt.map(function(x){return x[1];}),backgroundColor:"#4d9fff",borderRadius:6,maxBarThickness:30}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{display:false}},y:{grid:{color:"rgba(255,255,255,.05)"}}},indexAxis:"y"}});
-  var tm=tly(d,function(o){return g(o,"Tipo de Atendimento")||null;});
-  var tt=topN(tm,7);
-  mkC("cTipo",{type:"polarArea",data:{labels:tt.map(function(x){return x[0];}),datasets:[{data:tt.map(function(x){return x[1];}),backgroundColor:MIX.map(function(c){return c+"cc";}),borderColor:"#15151f",borderWidth:2}]},options:{plugins:{legend:{position:"bottom",labels:{boxWidth:9,padding:8,font:{size:10}}}},scales:{r:{ticks:{display:false},grid:{color:"rgba(255,255,255,.06)"}}}}});
   var tcm=tly(dAtv,function(o){return g(o,"T\u00e9cnico Respons\u00e1vel")||null;});
   var tc=topN(tcm,10);
   hbar("cTec",tc.map(function(x){return x[0];}),tc.map(function(x){return x[1];}),"#3ddc97");
