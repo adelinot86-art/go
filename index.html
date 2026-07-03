@@ -261,6 +261,7 @@ footer{text-align:center;color:var(--df);font-size:11px;margin-top:50px;line-hei
       <a class="btn ghost" href="calculadora.html" target="_top"><i class="fa-solid fa-calculator"></i> Calculadora</a>
       <button class="btn ghost" id="btnAtt" onclick="carregarDados(true)"><i class="fa-solid fa-rotate"></i> Atualizar</button>
       <button class="btn" onclick="abrirCad()"><i class="fa-solid fa-plus"></i> Novo chamado</button>
+      <a class="btn ghost" href="config.html" target="_top" title="Configurações"><i class="fa-solid fa-gear"></i> Configurações</a>
       <div class="pill"><i class="fa-solid fa-user"></i><span id="userEmail">—</span></div>
       <button class="btn ghost" onclick="logout()" title="Sair"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
     </div>
@@ -344,7 +345,7 @@ footer{text-align:center;color:var(--df);font-size:11px;margin-top:50px;line-hei
   <div class="modal-ov" id="mdCad" onclick="if(event.target===this)fecharCad()">
     <div class="modal">
       <div class="modal-h">
-        <h3><i class="fa-solid fa-square-plus"></i> Novo chamado</h3>
+        <h3><i class="fa-solid fa-square-plus"></i> <span id="cadTitulo">Novo chamado</span></h3>
         <button class="modal-x" type="button" onclick="fecharCad()" aria-label="Fechar"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="modal-b"><form id="formCad" onsubmit="return submeterCad(event)"></form></div>
@@ -821,7 +822,7 @@ function renderTable(){
   var tot=rows.length,pages=Math.max(1,Math.ceil(tot/TBL_PP));
   if(TBL_PAGE>=pages)TBL_PAGE=pages-1;
   var slice=rows.slice(TBL_PAGE*TBL_PP,(TBL_PAGE+1)*TBL_PP);
-  var html='<thead><tr>'+TBL_COLS.map(function(c){return'<th style="text-align:left;padding:9px 10px;color:#a8a596;border-bottom:1px solid rgba(255,255,255,.12);font-family:Sora;font-weight:600;font-size:11.5px;white-space:nowrap">'+c.replace(" Respons\u00e1vel","").replace("Base de Atendimento","Base")+'</th>';}).join("")+'</tr></thead><tbody>';
+  var html='<thead><tr>'+TBL_COLS.map(function(c){return'<th style="text-align:left;padding:9px 10px;color:#a8a596;border-bottom:1px solid rgba(255,255,255,.12);font-family:Sora;font-weight:600;font-size:11.5px;white-space:nowrap">'+c.replace(" Respons\u00e1vel","").replace("Base de Atendimento","Base")+'</th>';}).join("")+'<th style="text-align:center;padding:9px 10px;color:#a8a596;border-bottom:1px solid rgba(255,255,255,.12);font-family:Sora;font-weight:600;font-size:11.5px">Ações</th></tr></thead><tbody>';
   slice.forEach(function(o){
     html+='<tr style="transition:.15s" onmouseover="this.style.background=\'rgba(245,197,66,.05)\'" onmouseout="this.style.background=\'transparent\'">';
     html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05)">'+(g(o,"N\u00ba Chamado")||"—")+'</td>';
@@ -833,6 +834,7 @@ function renderTable(){
     html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05)">'+sBadge(g(o,"Status"))+'</td>';
     html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05)">'+pBadge(g(o,"Prioridade"))+'</td>';
     html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05)">'+(g(o,"Data Prevista")||"—")+'</td>';
+    html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05);text-align:center"><button class="btn ghost" style="padding:4px 9px;font-size:11px" title="Editar chamado" onclick="editarChamado(\''+esc(g(o,"Nº Chamado"))+'\')"><i class="fa-solid fa-pen"></i></button></td>';
     html+='</tr>';
   });
   html+='</tbody>';
@@ -868,18 +870,39 @@ var CAD_FIELDS=[
   {col:"Técnico Responsável",tipo:"combo",grupo:"Atendimento"},
   {col:"Tipo de Atendimento",tipo:"combo",grupo:"Atendimento"},
   {col:"Status",tipo:"combo",grupo:"Atendimento"},
-  {col:"Prioridade",tipo:"select",opts:["","Alta","Média","Baixa","Urgente"],grupo:"Atendimento"},
-  {col:"Data Prevista",lbl:"Data Prevista (aceita texto)",tipo:"text",grupo:"Atendimento"},
-  {col:"Materiais",tipo:"select",opts:["","Sim","Não"],grupo:"Complemento"},
+  {col:"Prioridade",tipo:"combo",grupo:"Atendimento"},
+  {col:"Data Prevista",tipo:"date",grupo:"Atendimento"},
+  {col:"Materiais",tipo:"combo",grupo:"Complemento"},
   {col:"Nº Chamado Materiais",tipo:"text",grupo:"Complemento"},
   {col:"Data Encerramento",tipo:"date",grupo:"Complemento"},
   {col:"Link Gerador de atividades",tipo:"text",grupo:"Complemento"},
   {col:"Relatório Técnico",tipo:"textarea",grupo:"Complemento",full:true},
   {col:"Observações",tipo:"textarea",grupo:"Complemento",full:true}
 ];
+// Campos cujas opções vêm das Configurações do sistema (config_opcoes). Chave = cabeçalho -> campo do banco.
+var CAMPO_DE={
+  "Departamento":"departamento",
+  "Base de Atendimento":"base_atendimento",
+  "Tipo de Atendimento":"tipo_atendimento",
+  "Status":"status",
+  "Prioridade":"prioridade",
+  "Técnico Responsável":"tecnico",
+  "Município":"municipio",
+  "Materiais":"materiais"
+};
+var OPCOES={};        // preenchido no init via fetchOpcoes()
+var CAD_EDIT_NUM=null; // se != null, o modal está editando este Nº Chamado
 function cadId(col){return "cad_"+nm(col).replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");}
 function distintosCol(col){var s=new Set();CH.forEach(function(o){var v=g(o,col);if(v&&v.trim()&&v!=="-"&&v!=="—")s.add(v.trim());});return Array.from(s).sort(function(a,b){return a.localeCompare(b,"pt-BR");});}
-function abrirCad(){
+// Opções de um campo: usa as configuradas (Configurações) se houver; senão, valores distintos dos chamados.
+function opcoesDoCampo(col){
+  var campo=CAMPO_DE[col];
+  if(campo&&OPCOES[campo]&&OPCOES[campo].length)return OPCOES[campo].map(function(o){return o.valor;});
+  return distintosCol(col);
+}
+// dd/mm/aaaa -> aaaa-mm-dd (para preencher input date ao editar)
+function brParaISO(v){v=(v||"").toString().trim();var m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return m[3]+"-"+("0"+m[2]).slice(-2)+"-"+("0"+m[1]).slice(-2);if(/^\d{4}-\d{2}-\d{2}/.test(v))return v.slice(0,10);return "";}
+function abrirCad(chamado){
   var grupos=["Identificação","Local","Atendimento","Complemento"];
   var body=grupos.map(function(gn){
     var fs=CAD_FIELDS.filter(function(f){return f.grupo===gn;});
@@ -889,22 +912,39 @@ function abrirCad(){
       var full=f.full?" full":"";
       var inner="";
       if(f.tipo==="textarea")inner='<textarea id="'+id+'" rows="2"></textarea>';
-      else if(f.tipo==="select")inner='<select id="'+id+'">'+f.opts.map(function(v){return'<option value="'+esc(v)+'">'+(v||"—")+'</option>';}).join("")+'</select>';
-      else if(f.tipo==="combo"){var dl="dl_"+id;inner='<input id="'+id+'" list="'+dl+'" autocomplete="off"><datalist id="'+dl+'">'+distintosCol(f.col).map(function(v){return'<option value="'+esc(v)+'"></option>';}).join("")+'</datalist>';}
+      else if(f.tipo==="combo"){var dl="dl_"+id;inner='<input id="'+id+'" list="'+dl+'" autocomplete="off"><datalist id="'+dl+'">'+opcoesDoCampo(f.col).map(function(v){return'<option value="'+esc(v)+'"></option>';}).join("")+'</datalist>';}
       else inner='<input id="'+id+'" type="'+f.tipo+'">';
       return '<div class="cadF'+full+'" id="wrap_'+id+'"><label>'+lbl+'</label>'+inner+'</div>';
     }).join("");
     return '<div class="cadGrp"><div class="cgh"><i class="fa-solid fa-angle-right"></i>'+gn+'</div><div class="cadGrid">'+campos+'</div></div>';
   }).join("");
   document.getElementById("formCad").innerHTML=body;
-  // defaults de data/hora de abertura (local)
-  var now=new Date();
-  var mm=("0"+(now.getMonth()+1)).slice(-2),dd=("0"+now.getDate()).slice(-2);
-  var di=document.getElementById(cadId("Data de Abertura"));if(di)di.value=now.getFullYear()+"-"+mm+"-"+dd;
-  var hi=document.getElementById(cadId("Hora Abertura"));if(hi)hi.value=("0"+now.getHours()).slice(-2)+":"+("0"+now.getMinutes()).slice(-2);
+
+  var titulo=document.getElementById("cadTitulo"),save=document.getElementById("cadSave");
+  if(chamado){
+    // ----- Modo EDIÇÃO -----
+    CAD_EDIT_NUM=g(chamado,"Nº Chamado");
+    if(titulo)titulo.textContent="Editar chamado";
+    if(save)save.innerHTML='<i class="fa-solid fa-floppy-disk"></i> Salvar alterações';
+    CAD_FIELDS.forEach(function(f){
+      var el=document.getElementById(cadId(f.col));if(!el)return;
+      var v=g(chamado,f.col)||"";
+      el.value=(f.tipo==="date")?brParaISO(v):v;
+    });
+  }else{
+    // ----- Modo NOVO -----
+    CAD_EDIT_NUM=null;
+    if(titulo)titulo.textContent="Novo chamado";
+    if(save)save.innerHTML='<i class="fa-solid fa-floppy-disk"></i> Salvar chamado';
+    var now=new Date();
+    var mm=("0"+(now.getMonth()+1)).slice(-2),dd=("0"+now.getDate()).slice(-2);
+    var di=document.getElementById(cadId("Data de Abertura"));if(di)di.value=now.getFullYear()+"-"+mm+"-"+dd;
+    var hi=document.getElementById(cadId("Hora Abertura"));if(hi)hi.value=("0"+now.getHours()).slice(-2)+":"+("0"+now.getMinutes()).slice(-2);
+  }
   var msg=document.getElementById("cadMsg");if(msg){msg.textContent="";msg.className="";}
   document.getElementById("mdCad").classList.add("on");document.body.style.overflow="hidden";
 }
+function editarChamado(num){var o=CH.find(function(x){return g(x,"Nº Chamado")===num;});if(o)abrirCad(o);}
 function fecharCad(){document.getElementById("mdCad").classList.remove("on");document.body.style.overflow="";}
 function submeterCad(ev){
   ev.preventDefault();
@@ -919,17 +959,21 @@ function submeterCad(ev){
   });
   var msg=document.getElementById("cadMsg");
   if(faltando.length){msg.className="bad";msg.textContent="Preencha: "+faltando.join(", ");return false;}
+  var editando=!!CAD_EDIT_NUM;
   var btn=document.getElementById("cadSave");
+  var lblBtn=editando?'<i class="fa-solid fa-floppy-disk"></i> Salvar alterações':'<i class="fa-solid fa-floppy-disk"></i> Salvar chamado';
   btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
-  msg.className="";msg.textContent="Gravando no banco de dados...";
-  insertChamado(dados)
+  msg.className="";msg.textContent=editando?"Salvando alterações...":"Gravando no banco de dados...";
+  var acao=editando?updateChamado(CAD_EDIT_NUM,dados):insertChamado(dados);
+  acao
     .then(function(rec){
-      btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-floppy-disk"></i> Salvar chamado';
-      msg.className="ok";msg.textContent="Chamado "+(rec&&rec.num_chamado?rec.num_chamado:"")+" cadastrado! Atualizando dashboard...";
+      btn.disabled=false;btn.innerHTML=lblBtn;
+      var num=(rec&&rec.num_chamado)?rec.num_chamado:(dados["Nº Chamado"]||"");
+      msg.className="ok";msg.textContent="Chamado "+num+(editando?" atualizado!":" cadastrado!")+" Atualizando dashboard...";
       setTimeout(function(){fecharCad();carregarDados(true);},800);
     })
     .catch(function(err){
-      btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-floppy-disk"></i> Salvar chamado';
+      btn.disabled=false;btn.innerHTML=lblBtn;
       var m=(err&&(err.code==="23505"||/duplicate|unique/i.test(err.message||"")))
         ? "Já existe um chamado com esse número."
         : "Falha ao gravar: "+((err&&err.message)?err.message:err);
@@ -968,6 +1012,7 @@ window.addEventListener("load",function(){
   requireAuth().then(function(user){
     if(!user)return;
     var ue=document.getElementById("userEmail");if(ue)ue.textContent=user.email||"conectado";
+    fetchOpcoes().then(function(m){OPCOES=m||{};}).catch(function(e){console.warn("Opções não carregadas:",e);});
     carregarDados(false);
   });
 });

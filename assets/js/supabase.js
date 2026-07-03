@@ -36,7 +36,7 @@
     ['link_atividades',       'Link Gerador de atividades'],
     ['observacoes',           'Observações']
   ];
-  var DATE_COLS = { data_abertura: 1, data_encerramento: 1 };
+  var DATE_COLS = { data_abertura: 1, data_encerramento: 1, data_prevista: 1 };
 
   function isoParaBR(v) {
     if (!v) return '';
@@ -73,6 +73,60 @@
     });
     return sb.from('chamados').insert(rec).select().single()
       .then(function (res) { if (res.error) throw res.error; return res.data; });
+  };
+
+  /* Atualiza um chamado existente (localizado pelo Nº Chamado original). */
+  global.updateChamado = function (numOriginal, dadosDisplay) {
+    var dispParaDb = {}; COLS.forEach(function (c) { dispParaDb[c[1]] = c[0]; });
+    var rec = {};
+    COLS.forEach(function (c) {
+      var disp = c[1], db = c[0];
+      var v = dadosDisplay[disp];
+      // grava o valor (ou limpa o campo se veio vazio)
+      rec[db] = (v != null && String(v).trim() !== '') ? v : null;
+    });
+    delete rec.created_at; delete rec.id;
+    return sb.from('chamados').update(rec).eq('num_chamado', numOriginal).select().single()
+      .then(function (res) { if (res.error) throw res.error; return res.data; });
+  };
+
+  /* ===== Opções configuráveis dos campos ===== */
+  global.fetchOpcoes = function () {
+    return sb.from('config_opcoes').select('id,campo,valor,ordem').order('campo').order('ordem')
+      .then(function (res) {
+        if (res.error) throw res.error;
+        var map = {};
+        (res.data || []).forEach(function (r) { (map[r.campo] = map[r.campo] || []).push({ id: r.id, valor: r.valor, ordem: r.ordem }); });
+        return map;
+      });
+  };
+  global.addOpcao = function (campo, valor, ordem) {
+    return sb.from('config_opcoes').insert({ campo: campo, valor: valor, ordem: ordem || 0 }).select().single()
+      .then(function (res) { if (res.error) throw res.error; return res.data; });
+  };
+  global.removeOpcao = function (id) {
+    return sb.from('config_opcoes').delete().eq('id', id)
+      .then(function (res) { if (res.error) throw res.error; return true; });
+  };
+  global.setOrdemOpcao = function (id, ordem) {
+    return sb.from('config_opcoes').update({ ordem: ordem }).eq('id', id)
+      .then(function (res) { if (res.error) throw res.error; return true; });
+  };
+
+  /* ===== Usuários (via Edge Function 'admin-users', que usa a service_role no servidor) ===== */
+  global.adminUsers = function (action, payload) {
+    return sb.functions.invoke('admin-users', { body: Object.assign({ action: action }, payload || {}) })
+      .then(function (res) {
+        if (res.error) {
+          // tenta extrair a mensagem do corpo da resposta de erro
+          if (res.error.context && typeof res.error.context.json === 'function') {
+            return res.error.context.json().then(function (b) { throw new Error((b && b.error) || res.error.message); });
+          }
+          throw new Error(res.error.message || 'Falha ao chamar a função de usuários.');
+        }
+        if (res.data && res.data.error) throw new Error(res.data.error);
+        return res.data;
+      });
   };
 
   /* ===== Autenticação ===== */

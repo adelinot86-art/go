@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Configurações · Gestão Operacional</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/supabase.js"></script>
+<style>
+:root{--bg:#0a0a0f;--card:#15151f;--card2:#1a1a24;--s1:rgba(255,255,255,.06);--s2:rgba(255,255,255,.12);
+  --tx:#f5f3ea;--dm:#a8a596;--df:#6b6857;--gold:#f5c542;--gold2:#e0a818;--amber:#ffb020;--cream:#fff8e6;
+  --gn:#3ddc97;--bl:#4d9fff;--re:#ff5d6c;--R:15px;--SH:0 20px 50px -22px rgba(0,0,0,.85);
+  --FD:'Sora','Segoe UI',sans-serif;--FB:'Inter','Segoe UI',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--FB);background:var(--bg);color:var(--tx);min-height:100vh;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;z-index:-1;
+  background:radial-gradient(1000px 520px at 10% -8%,rgba(245,197,66,.10),transparent 55%),
+             radial-gradient(820px 480px at 96% 0%,rgba(224,168,24,.08),transparent 52%),var(--bg)}
+.W{max-width:1000px;margin:0 auto;padding:24px 22px 80px}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 22px;margin-bottom:22px;
+  border-radius:var(--R);background:linear-gradient(120deg,rgba(245,197,66,.12),rgba(224,168,24,.04));
+  border:1px solid rgba(245,197,66,.18);box-shadow:var(--SH);flex-wrap:wrap}
+.brd{display:flex;align-items:center;gap:13px}
+.bm{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;font-size:21px;color:#1a1405;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));box-shadow:0 0 26px rgba(245,197,66,.4)}
+.brd h1{font-family:var(--FD);font-size:19px;font-weight:800;background:linear-gradient(90deg,var(--cream),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.brd p{color:var(--dm);font-size:12px;margin-top:2px}
+.hr{display:flex;gap:10px;flex-wrap:wrap}
+.btn{cursor:pointer;border:1px solid rgba(245,197,66,.4);color:#1a1405;font-family:var(--FB);font-size:13px;font-weight:700;
+  padding:9px 15px;border-radius:11px;display:inline-flex;align-items:center;gap:8px;text-decoration:none;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn.ghost{background:rgba(255,255,255,.04);color:var(--tx);border-color:var(--s2)}
+.btn.ghost:hover{background:rgba(245,197,66,.12);border-color:var(--gold)}
+.btn.sm{padding:6px 11px;font-size:12px}
+.btn.danger{background:rgba(255,93,108,.14);color:var(--re);border-color:rgba(255,93,108,.4)}
+.btn.danger:hover{background:rgba(255,93,108,.24)}
+.tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.tab{cursor:pointer;padding:11px 18px;border-radius:12px;border:1px solid var(--s1);background:var(--card);
+  color:var(--dm);font-family:var(--FD);font-weight:600;font-size:13px;transition:.2s;display:flex;align-items:center;gap:8px}
+.tab:hover{border-color:rgba(245,197,66,.3);color:var(--tx)}
+.tab.active{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1405;border-color:transparent}
+.pane{display:none} .pane.active{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.crd{background:var(--card);border:1px solid var(--s1);border-radius:var(--R);padding:20px;box-shadow:var(--SH)}
+.sec{font-family:var(--FD);font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:9px}
+.sec i{color:var(--gold)}
+label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--df);margin-bottom:6px}
+select,input{width:100%;padding:10px 12px;border-radius:10px;background:#0c0c12;border:1px solid var(--s1);
+  color:var(--tx);font-family:var(--FB);font-size:13px;outline:none;transition:.2s}
+select:focus,input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,197,66,.14)}
+select option{background:#15151f}
+.opt-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--s1);border-radius:11px;margin-bottom:8px;background:rgba(0,0,0,.18)}
+.opt-row .val{flex:1;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.opt-row .ord{width:30px;height:30px;border-radius:8px;border:1px solid var(--s1);background:rgba(255,255,255,.04);
+  color:var(--dm);cursor:pointer;display:grid;place-items:center;font-size:12px;transition:.2s}
+.opt-row .ord:hover{border-color:var(--gold);color:var(--gold)}
+.opt-row .del{width:30px;height:30px;border-radius:8px;border:1px solid var(--s1);background:rgba(255,93,108,.1);
+  color:var(--re);cursor:pointer;display:grid;place-items:center;font-size:12px;transition:.2s}
+.opt-row .del:hover{background:rgba(255,93,108,.22)}
+.addbar{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.addbar input{flex:1;min-width:200px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.empty{color:var(--df);font-size:12.5px;padding:14px;text-align:center}
+.alert{border-radius:11px;padding:12px 14px;font-size:12.5px;line-height:1.5;margin-bottom:16px}
+.alert.warn{background:rgba(255,176,32,.1);border:1px solid rgba(255,176,32,.35);color:var(--amber)}
+.alert.bad{background:rgba(255,93,108,.1);border:1px solid rgba(255,93,108,.35);color:var(--re)}
+.msg{font-size:12.5px;min-height:16px;margin-top:8px}
+.msg.ok{color:var(--gn)} .msg.bad{color:var(--re)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;padding:9px 8px;color:var(--dm);border-bottom:1px solid var(--s2);font-family:var(--FD);font-weight:600;font-size:11.5px}
+td{padding:9px 8px;border-top:1px solid rgba(255,255,255,.05);vertical-align:middle}
+.urow-edit{display:flex;gap:6px;align-items:center}
+.urow-edit input{width:130px;padding:7px 9px;font-size:12px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="W">
+  <header>
+    <div class="brd">
+      <div class="bm"><i class="fa-solid fa-gear"></i></div>
+      <div><h1>Configurações do sistema</h1><p>Opções dos campos e usuários</p></div>
+    </div>
+    <div class="hr">
+      <a class="btn ghost" href="index.html" target="_top"><i class="fa-solid fa-arrow-left"></i> Voltar ao Dashboard</a>
+      <button class="btn ghost" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-pane="pOpc" onclick="setTab('pOpc')"><i class="fa-solid fa-list-ul"></i> Opções dos campos</div>
+    <div class="tab" data-pane="pUsr" onclick="setTab('pUsr')"><i class="fa-solid fa-users"></i> Usuários</div>
+  </div>
+
+  <!-- ===================== OPÇÕES DOS CAMPOS ===================== -->
+  <div class="pane active" id="pOpc">
+    <div class="crd">
+      <div class="sec"><i class="fa-solid fa-sliders"></i> Opções dos campos do cadastro</div>
+      <p style="color:var(--dm);font-size:12px;margin-bottom:16px">Estas listas alimentam os campos do formulário <b>Novo chamado</b> / <b>Editar chamado</b>.</p>
+      <div class="grid2">
+        <div>
+          <label>Campo</label>
+          <select id="selCampo" onchange="renderOpcoes()"></select>
+        </div>
+        <div></div>
+      </div>
+      <div id="listaOpcoes" style="margin-top:18px"></div>
+      <div class="addbar">
+        <input id="novaOpcao" placeholder="Nova opção..." onkeydown="if(event.key==='Enter')adicionarOpcao()">
+        <button class="btn" onclick="adicionarOpcao()"><i class="fa-solid fa-plus"></i> Adicionar</button>
+      </div>
+      <div class="msg" id="msgOpc"></div>
+    </div>
+  </div>
+
+  <!-- ===================== USUÁRIOS ===================== -->
+  <div class="pane" id="pUsr">
+    <div class="crd">
+      <div class="sec"><i class="fa-solid fa-user-gear"></i> Gerenciar usuários</div>
+      <div id="usrAlert"></div>
+
+      <div class="grid2" style="align-items:end;margin-bottom:10px">
+        <div>
+          <label>Novo usuário — e-mail</label>
+          <input id="novoEmail" type="email" placeholder="usuario@exemplo.com">
+        </div>
+        <div>
+          <label>Senha (mín. 6 caracteres)</label>
+          <input id="novaSenha" type="text" placeholder="senha inicial">
+        </div>
+      </div>
+      <button class="btn" id="btnCriarUsr" onclick="criarUsuario()"><i class="fa-solid fa-user-plus"></i> Criar usuário</button>
+      <div class="msg" id="msgUsr"></div>
+
+      <div style="overflow-x:auto;margin-top:20px">
+        <table id="tblUsr"><thead><tr><th>E-mail</th><th>Criado</th><th>Último acesso</th><th>Nova senha</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function esc(s){return(s||"").toString().replace(/"/g,"&quot;");}
+function setTab(id){
+  document.querySelectorAll(".tab").forEach(function(t){t.classList.toggle("active",t.dataset.pane===id);});
+  document.querySelectorAll(".pane").forEach(function(p){p.classList.toggle("active",p.id===id);});
+  if(id==="pUsr")carregarUsuarios();
+}
+
+/* ===== OPÇÕES DOS CAMPOS ===== */
+var CAMPOS=[
+  {campo:"departamento",lbl:"Departamento"},
+  {campo:"base_atendimento",lbl:"Base de Atendimento"},
+  {campo:"tipo_atendimento",lbl:"Tipo de Atendimento"},
+  {campo:"status",lbl:"Status"},
+  {campo:"prioridade",lbl:"Prioridade"},
+  {campo:"tecnico",lbl:"Técnico Responsável"},
+  {campo:"municipio",lbl:"Município"},
+  {campo:"materiais",lbl:"Materiais"}
+];
+var OPC={};
+
+function initCampos(){
+  document.getElementById("selCampo").innerHTML=CAMPOS.map(function(c){return'<option value="'+c.campo+'">'+c.lbl+'</option>';}).join("");
+}
+function carregarOpcoes(){
+  return fetchOpcoes().then(function(m){OPC=m||{};renderOpcoes();}).catch(function(e){
+    document.getElementById("listaOpcoes").innerHTML='<div class="empty">Erro ao carregar opções: '+(e.message||e)+'</div>';
+  });
+}
+function campoAtual(){return document.getElementById("selCampo").value;}
+function renderOpcoes(){
+  var campo=campoAtual();var arr=(OPC[campo]||[]);
+  var box=document.getElementById("listaOpcoes");
+  if(!arr.length){box.innerHTML='<div class="empty">Nenhuma opção cadastrada para este campo ainda.</div>';return;}
+  box.innerHTML=arr.map(function(o,i){
+    return '<div class="opt-row">'+
+      '<button class="ord" title="Subir" '+(i===0?'disabled style="opacity:.3"':'onclick="moverOpcao('+o.id+',-1)"')+'><i class="fa-solid fa-chevron-up"></i></button>'+
+      '<button class="ord" title="Descer" '+(i===arr.length-1?'disabled style="opacity:.3"':'onclick="moverOpcao('+o.id+',1)"')+'><i class="fa-solid fa-chevron-down"></i></button>'+
+      '<span class="val">'+o.valor+'</span>'+
+      '<button class="del" title="Remover" onclick="removerOpcaoUI('+o.id+')"><i class="fa-solid fa-trash"></i></button>'+
+    '</div>';
+  }).join("");
+}
+function adicionarOpcao(){
+  var campo=campoAtual();var inp=document.getElementById("novaOpcao");var val=inp.value.trim();
+  var msg=document.getElementById("msgOpc");msg.className="msg";msg.textContent="";
+  if(!val){msg.className="msg bad";msg.textContent="Digite um valor.";return;}
+  var arr=(OPC[campo]||[]);
+  if(arr.some(function(o){return o.valor.toLowerCase()===val.toLowerCase();})){msg.className="msg bad";msg.textContent="Essa opção já existe.";return;}
+  var ordem=arr.reduce(function(m,o){return Math.max(m,o.ordem||0);},0)+1;
+  addOpcao(campo,val,ordem).then(function(){inp.value="";return carregarOpcoes();})
+    .then(function(){msg.className="msg ok";msg.textContent="Opção adicionada.";})
+    .catch(function(e){msg.className="msg bad";msg.textContent="Erro: "+(e.message||e);});
+}
+function removerOpcaoUI(id){
+  if(!confirm("Remover esta opção?"))return;
+  removeOpcao(id).then(carregarOpcoes).catch(function(e){alert("Erro ao remover: "+(e.message||e));});
+}
+function moverOpcao(id,dir){
+  var campo=campoAtual();var arr=(OPC[campo]||[]);
+  var i=arr.findIndex(function(o){return o.id===id;});var j=i+dir;
+  if(i<0||j<0||j>=arr.length)return;
+  var a=arr[i],b=arr[j];
+  Promise.all([setOrdemOpcao(a.id,b.ordem),setOrdemOpcao(b.id,a.ordem)]).then(carregarOpcoes)
+    .catch(function(e){alert("Erro ao reordenar: "+(e.message||e));});
+}
+
+/* ===== USUÁRIOS ===== */
+var usrCarregados=false;
+function carregarUsuarios(){
+  var tb=document.querySelector("#tblUsr tbody");var alert=document.getElementById("usrAlert");
+  alert.innerHTML="";tb.innerHTML='<tr><td colspan="5" class="empty">Carregando...</td></tr>';
+  adminUsers("list").then(function(res){
+    var us=(res&&res.users)||[];
+    if(!us.length){tb.innerHTML='<tr><td colspan="5" class="empty">Nenhum usuário.</td></tr>';return;}
+    tb.innerHTML=us.map(function(u){
+      var criado=u.created_at?new Date(u.created_at).toLocaleDateString("pt-BR"):"—";
+      var acesso=u.last_sign_in_at?new Date(u.last_sign_in_at).toLocaleString("pt-BR"):"nunca";
+      return '<tr>'+
+        '<td>'+(u.email||"—")+'</td><td>'+criado+'</td><td>'+acesso+'</td>'+
+        '<td><div class="urow-edit"><input type="text" id="pw_'+u.id+'" placeholder="nova senha"><button class="btn sm" onclick="salvarSenha(\''+u.id+'\')">Salvar</button></div></td>'+
+        '<td><button class="btn sm danger" onclick="excluirUsuario(\''+u.id+'\',\''+esc(u.email)+'\')"><i class="fa-solid fa-trash"></i></button></td>'+
+      '</tr>';
+    }).join("");
+  }).catch(function(e){
+    tb.innerHTML='<tr><td colspan="5" class="empty">—</td></tr>';
+    var m=e.message||String(e);
+    var dica = /restrito a administradores/i.test(m)
+      ? "Seu usuário não está na tabela <b>admins</b>. Rode no SQL Editor: <code>insert into public.admins (email) values ('SEU-EMAIL');</code>"
+      : /Failed to send|Function not found|non-2xx|404/i.test(m)
+        ? "A Edge Function <b>admin-users</b> ainda não foi publicada. Veja o README (seção Deploy da função)."
+        : m;
+    alert.innerHTML='<div class="alert warn"><b>Não foi possível listar usuários.</b><br>'+dica+'</div>';
+  });
+}
+function criarUsuario(){
+  var email=document.getElementById("novoEmail").value.trim();
+  var senha=document.getElementById("novaSenha").value;
+  var msg=document.getElementById("msgUsr");msg.className="msg";msg.textContent="";
+  if(!email||!senha){msg.className="msg bad";msg.textContent="Informe e-mail e senha.";return;}
+  var btn=document.getElementById("btnCriarUsr");btn.disabled=true;
+  adminUsers("create",{email:email,password:senha}).then(function(){
+    msg.className="msg ok";msg.textContent="Usuário criado.";
+    document.getElementById("novoEmail").value="";document.getElementById("novaSenha").value="";
+    btn.disabled=false;carregarUsuarios();
+  }).catch(function(e){msg.className="msg bad";msg.textContent="Erro: "+(e.message||e);btn.disabled=false;});
+}
+function salvarSenha(id){
+  var inp=document.getElementById("pw_"+id);var senha=(inp.value||"").trim();
+  var msg=document.getElementById("msgUsr");msg.className="msg";
+  if(senha.length<6){msg.className="msg bad";msg.textContent="A nova senha deve ter ao menos 6 caracteres.";return;}
+  adminUsers("update",{id:id,password:senha}).then(function(){
+    inp.value="";msg.className="msg ok";msg.textContent="Senha atualizada.";
+  }).catch(function(e){msg.className="msg bad";msg.textContent="Erro: "+(e.message||e);});
+}
+function excluirUsuario(id,email){
+  if(!confirm("Excluir o usuário "+email+"? Esta ação não pode ser desfeita."))return;
+  var msg=document.getElementById("msgUsr");msg.className="msg";
+  adminUsers("delete",{id:id}).then(function(){msg.className="msg ok";msg.textContent="Usuário excluído.";carregarUsuarios();})
+    .catch(function(e){msg.className="msg bad";msg.textContent="Erro: "+(e.message||e);});
+}
+
+/* ===== INIT ===== */
+window.addEventListener("load",function(){
+  requireAuth().then(function(user){
+    if(!user)return;
+    initCampos();
+    carregarOpcoes();
+  });
+});
+</script>
+</body>
+</html>
