@@ -130,6 +130,24 @@
     return sb.from('tecnicos').delete().eq('id', id)
       .then(function (res) { if (res.error) throw res.error; return true; });
   };
+  // Exceções de escala (calendário de disponibilidade).
+  global.fetchExcecoesTodas = function () {
+    return sb.from('tecnico_excecoes').select('*')
+      .then(function (res) { if (res.error) throw res.error; return res.data || []; });
+  };
+  global.fetchExcecoes = function (tecnicoId) {
+    return sb.from('tecnico_excecoes').select('*').eq('tecnico_id', tecnicoId).order('data')
+      .then(function (res) { if (res.error) throw res.error; return res.data || []; });
+  };
+  global.setExcecao = function (obj) {
+    return sb.from('tecnico_excecoes').upsert(obj, { onConflict: 'tecnico_id,data' }).select().single()
+      .then(function (res) { if (res.error) throw res.error; return res.data; });
+  };
+  global.removeExcecaoData = function (tecnicoId, data) {
+    return sb.from('tecnico_excecoes').delete().eq('tecnico_id', tecnicoId).eq('data', data)
+      .then(function (res) { if (res.error) throw res.error; return true; });
+  };
+
   // Técnico do usuário logado (casado pelo e-mail).
   global.meuTecnico = function () {
     return sb.auth.getUser().then(function (r) {

@@ -81,6 +81,8 @@ h1 i{color:var(--gold)}
 .glabel .rt:hover{color:var(--gold);border-color:var(--gold)}
 .gtrack{position:relative;flex:1;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.045) 0 1px,transparent 1px);background-size:var(--pxh) 100%;transition:background-color .12s}
 .gtrack.dragover{background-color:rgba(245,197,66,.08)}
+.shade{position:absolute;top:0;bottom:0;background:rgba(0,0,0,.32);pointer-events:none;z-index:0}
+.folgabar{position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,93,108,.12) 0 9px,rgba(255,93,108,.03) 9px 18px);display:flex;align-items:center;justify-content:center;color:#ff9aa4;font-size:11px;font-weight:800;letter-spacing:2px;pointer-events:none;z-index:0}
 .blk{position:absolute;height:30px;border:1px solid;border-radius:7px;padding:0 7px;display:flex;align-items:center;gap:5px;
   font-size:11px;white-space:nowrap;overflow:hidden;cursor:grab;transition:.12s;color:var(--tx)}
 .blk:hover{filter:brightness(1.25);z-index:2}
@@ -196,7 +198,7 @@ h1 i{color:var(--gold)}
 <script src="assets/js/nav.js"></script>
 <script>
 var H0=6,H1=20,PXH=64;
-var DIA=isoHoje(),TECNICOS=[],CHAMADOS=[];
+var DIA=isoHoje(),TECNICOS=[],CHAMADOS=[],EXCECOES=[];
 var MAP=null,ML=null,ROTA=null,MK={},SEL=null,agId=null;
 
 function nm(s){return(s||"").toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," ").trim();}
@@ -210,15 +212,24 @@ function diaLocalDe(iso){if(!iso)return null;var d=new Date(iso);if(isNaN(d))ret
 function minInicio(iso){var d=new Date(iso);return (d.getHours()-H0)*60+d.getMinutes();}
 function fmtHora(iso){var d=new Date(iso);return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);}
 function shortDep(d){var m=(d||"").match(/^\D*(\d+)/);return m?("Item "+m[1]):((d||"").length>18?d.slice(0,18)+"…":d);}
+function hm(t){var p=(t||"08:00").toString().split(":");return (parseInt(p[0],10)-H0)*60+(parseInt(p[1],10)||0);}
+function dispDoDia(tec){
+  var wd=new Date(DIA+"T12:00:00").getDay();
+  var ex=EXCECOES.find(function(e){return e.tecnico_id===tec.id && e.data===DIA;});
+  if(ex){if(ex.tipo==="folga")return{folga:true};return{folga:false,ini:hm(ex.hora_inicio||tec.hora_inicio||"08:00"),fim:hm(ex.hora_fim||tec.hora_fim||"18:00")};}
+  if((tec.dias_semana||[1,2,3,4,5]).indexOf(wd)>=0)return{folga:false,ini:hm(tec.hora_inicio||"08:00"),fim:hm(tec.hora_fim||"18:00")};
+  return{folga:true};
+}
 
 function mudarDia(n){var d=new Date(DIA+"T12:00:00");d.setDate(d.getDate()+n);DIA=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);render();}
 function irData(){var v=document.getElementById("inpDia").value;if(v){DIA=v;render();}}
 function hoje(){DIA=isoHoje();render();}
 
 function carregar(){
-  Promise.all([fetchTecnicos(),fetchChamadosTodos()]).then(function(r){
+  Promise.all([fetchTecnicos(),fetchChamadosTodos(),fetchExcecoesTodas()]).then(function(r){
     TECNICOS=(r[0]||[]).filter(function(t){return t.ativo!==false;});
     CHAMADOS=r[1]||[];
+    EXCECOES=r[2]||[];
     render();
   }).catch(function(e){document.getElementById("grows").innerHTML='<div class="emptyrow">Erro ao carregar: '+(e.message||e)+'</div>';});
 }
@@ -246,12 +257,17 @@ function render(){
       var titulo="#"+c.num_chamado+" · "+fmtHora(c.agendado_em)+" · "+(c.tipo_atendimento||"")+" · "+cap(c.municipio||"");
       return '<div class="blk'+(SEL===c.id?' sel':'')+'" data-id="'+c.id+'" draggable="true" ondragstart="arrastar(event,'+c.id+')" style="left:'+left+'px;width:'+w+'px;top:'+(c._lane*34+5)+'px;background:'+col+'26;border-color:'+col+'" onclick="selecionar('+c.id+')" title="'+esc(titulo)+'"><b>#'+c.num_chamado+'</b> '+esc((c.tipo_atendimento||"").substring(0,22))+'</div>';
     }).join("");
+    var disp=dispDoDia(t),overlay="",totMin=(H1-H0)*60;
+    if(disp.folga)overlay='<div class="folgabar">FOLGA</div>';
+    else{var iniM=Math.max(0,Math.min(totMin,disp.ini)),fimM=Math.max(0,Math.min(totMin,disp.fim));
+      if(iniM>0)overlay+='<div class="shade" style="left:0;width:'+(iniM/60*PXH)+'px"></div>';
+      if(fimM<totMin)overlay+='<div class="shade" style="left:'+(fimM/60*PXH)+'px;width:'+((totMin-fimM)/60*PXH)+'px"></div>';}
     var nomeJs=(t.nome||"").replace(/'/g,"\\'");
     rows+='<div class="grow" style="height:'+rowH+'px">'+
       '<div class="glabel"><span class="dot" style="background:'+(t.cor||"#4d9fff")+'"></span>'+
         '<span class="tn" title="'+esc(t.nome)+'" onclick="infoTecnico(\''+nomeJs+'\')">'+(t.nome||"—")+'</span>'+
         '<span class="rt" title="Gerar rota do dia" onclick="rota(\''+nomeJs+'\')"><i class="fa-solid fa-route"></i></span></div>'+
-      '<div class="gtrack" style="height:'+rowH+'px;width:'+totalW+'px" ondragover="permitir(event)" ondragenter="this.classList.add(\'dragover\')" ondragleave="this.classList.remove(\'dragover\')" ondrop="soltar(event,\''+nomeJs+'\')">'+blocks+'</div></div>';
+      '<div class="gtrack" style="height:'+rowH+'px;width:'+totalW+'px" ondragover="permitir(event)" ondragenter="this.classList.add(\'dragover\')" ondragleave="this.classList.remove(\'dragover\')" ondrop="soltar(event,\''+nomeJs+'\')">'+overlay+blocks+'</div></div>';
   });
   if(!TECNICOS.length)rows='<div class="emptyrow">Nenhum técnico ativo. Cadastre em Configurações → Técnicos.</div>';
   document.getElementById("grows").innerHTML=rows;
@@ -366,13 +382,20 @@ function atualizarDetalhe(id){
 function infoTecnico(nome){
   var t=TECNICOS.find(function(x){return x.nome===nome;});if(!t)return;
   var doDia=CHAMADOS.filter(function(c){return c.tecnico===nome && diaLocalDe(c.agendado_em)===DIA;}).length;
+  var WD=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+  var exp=(t.hora_inicio||"08:00").slice(0,5)+"–"+(t.hora_fim||"18:00").slice(0,5);
+  var dias=((t.dias_semana||[]).map(function(d){return WD[d];}).join(", "))||"—";
+  var d2=dispDoDia(t);
   document.getElementById("detalhe").innerHTML=
-    '<b>'+esc(t.nome)+'</b> <span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:'+(t.cor||"#4d9fff")+';vertical-align:middle"></span><br>'+
+    '<b>'+esc(t.nome)+'</b> <span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:'+(t.cor||"#4d9fff")+';vertical-align:middle"></span>'+(d2.folga?' <span class="badge" style="background:rgba(255,93,108,.16);color:#ff9aa4">FOLGA hoje</span>':'')+'<br>'+
     'E-mail: '+esc(t.email||"—")+'<br>'+
     'Telefone: '+esc(t.telefone||"—")+'<br>'+
     'Base: '+esc(t.base_atendimento||"—")+'<br>'+
+    'Expediente: <b>'+exp+'</b> · '+dias+'<br>'+
+    'Habilidades: '+((t.habilidades&&t.habilidades.length)?esc(t.habilidades.join(", ")):"—")+'<br>'+
+    'Rotas: '+((t.rotas&&t.rotas.length)?esc(t.rotas.join(", ")):"—")+'<br>'+
     'Atividades hoje: <b>'+doDia+'</b><br>'+
-    '<div style="margin-top:10px"><a class="btn ghost sm" href="config.html" target="_top"><i class="fa-solid fa-gear"></i> Configurar em Técnicos</a></div>';
+    '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><span class="btn ghost sm" onclick="rota(\''+esc(t.nome).replace(/'/g,"\\'")+'\')" style="cursor:pointer"><i class="fa-solid fa-route"></i> Gerar rota</span><a class="btn ghost sm" href="config.html" target="_top"><i class="fa-solid fa-gear"></i> Configurar</a></div>';
 }
 
 /* ===== AGENDAR ===== */

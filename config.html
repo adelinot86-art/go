@@ -77,6 +77,27 @@ td{padding:9px 8px;border-top:1px solid rgba(255,255,255,.05);vertical-align:mid
 .urow-edit{display:flex;gap:6px;align-items:center}
 .urow-edit input{width:130px;padding:7px 9px;font-size:12px}
 @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.chipbox{display:flex;flex-wrap:wrap;gap:6px;min-height:8px;margin:2px 0 7px}
+.chip2{display:inline-flex;align-items:center;gap:7px;background:rgba(245,197,66,.12);border:1px solid rgba(245,197,66,.35);color:var(--cream);border-radius:20px;padding:4px 11px;font-size:12px}
+.chip2 i{cursor:pointer;color:var(--dm)}.chip2 i:hover{color:var(--re)}
+.chipadd{display:flex;gap:8px}.chipadd input{flex:1}
+.wdays{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.wd{cursor:pointer;padding:7px 12px;border-radius:9px;border:1px solid var(--s1);background:#0c0c12;color:var(--dm);font-size:12px;font-weight:600;user-select:none}
+.wd.on{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1405;border-color:transparent}
+.calhead{display:flex;align-items:center;justify-content:center;gap:16px;margin:12px 0}
+.calhead b{font-family:var(--FD);font-size:14px;min-width:160px;text-align:center}
+.calhead i{cursor:pointer;color:var(--dm);padding:5px 9px;border-radius:7px}.calhead i:hover{background:rgba(245,197,66,.14);color:var(--gold)}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.calh{text-align:center;font-size:10px;color:var(--df);text-transform:uppercase;padding:4px 0}
+.cald{aspect-ratio:1;border-radius:8px;border:1px solid var(--s1);display:flex;align-items:center;justify-content:center;font-size:12.5px;cursor:pointer;transition:.12s}
+.cald:hover{border-color:var(--gold)}
+.cald.mut{color:var(--df)}
+.cald.work{background:rgba(61,220,151,.12);border-color:rgba(61,220,151,.3);color:#dff7ea}
+.cald.folga{background:rgba(255,93,108,.16);border-color:rgba(255,93,108,.4);color:#ffd7db}
+.cald.extra{background:rgba(77,159,255,.16);border-color:rgba(77,159,255,.4)}
+.cald.empty{border:none;cursor:default}
+.calleg{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--dm);margin-top:10px}
+.calleg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -132,9 +153,34 @@ td{padding:9px 8px;border-top:1px solid rgba(255,255,255,.05);vertical-align:mid
         <div><label>Cor no Gantt</label><input id="tecCor" type="color" value="#4d9fff" style="height:42px;padding:4px"></div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:22px"><input type="checkbox" id="tecAtivo" checked style="width:auto"><label style="margin:0">Ativo</label></div>
       </div>
-      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+
+      <div style="margin-top:18px"><label>Habilidades</label>
+        <div class="chipbox" id="boxHab"></div>
+        <div class="chipadd"><input id="inpHab" placeholder="Ex.: Instalação, Manutenção..." onkeydown="if(event.key==='Enter'){event.preventDefault();addChip('hab');}"><button type="button" class="btn ghost sm" onclick="addChip('hab')"><i class="fa-solid fa-plus"></i></button></div>
+      </div>
+      <div style="margin-top:14px"><label>Rotas atendidas</label>
+        <div class="chipbox" id="boxRot"></div>
+        <div class="chipadd"><input id="inpRot" placeholder="Ex.: Teresina - Interior" onkeydown="if(event.key==='Enter'){event.preventDefault();addChip('rot');}"><button type="button" class="btn ghost sm" onclick="addChip('rot')"><i class="fa-solid fa-plus"></i></button></div>
+      </div>
+      <div style="margin-top:16px"><label>Expediente (horário de trabalho)</label>
+        <div class="grid2" style="margin-top:0">
+          <div><label style="font-size:10px">Hora início</label><input type="time" id="tecHi" value="08:00"></div>
+          <div><label style="font-size:10px">Hora fim</label><input type="time" id="tecHf" value="18:00"></div>
+        </div>
+        <label style="margin-top:12px">Dias de trabalho</label>
+        <div class="wdays" id="wdays"></div>
+      </div>
+
+      <div id="calWrap" style="display:none;margin-top:18px">
+        <label>Calendário de disponibilidade <span style="color:var(--df);text-transform:none;letter-spacing:0">— clique num dia p/ marcar folga; clique de novo p/ desmarcar</span></label>
+        <div class="calhead"><i class="fa-solid fa-chevron-left" onclick="calNav(-1)"></i><b id="calTit"></b><i class="fa-solid fa-chevron-right" onclick="calNav(1)"></i></div>
+        <div class="calgrid" id="calGrid"></div>
+        <div class="calleg"><span><i style="background:#3ddc97"></i>Trabalha</span><span><i style="background:#ff5d6c"></i>Folga</span><span><i style="background:#4d9fff"></i>Trabalho extra</span><span style="color:var(--df)">· cinza = fora dos dias de trabalho</span></div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
         <button class="btn" id="btnSalvarTec" onclick="salvarTecnico()"><i class="fa-solid fa-floppy-disk"></i> Salvar técnico</button>
-        <button class="btn ghost" onclick="limparTec()"><i class="fa-solid fa-eraser"></i> Limpar</button>
+        <button class="btn ghost" onclick="limparTec()"><i class="fa-solid fa-eraser"></i> Limpar / novo</button>
       </div>
       <div class="msg" id="msgTec"></div>
 
@@ -294,11 +340,14 @@ function excluirUsuario(id,email){
 }
 
 /* ===== TÉCNICOS ===== */
-var TECNICOS=[],tecEditId=null;
+var TECNICOS=[],tecEditId=null,tecHab=[],tecRot=[],tecDias=[1,2,3,4,5],EXC=[],calRef=null;
+var WDIAS=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+function isoDe(d){return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+
 function carregarTecnicos(){
-  // datalist de bases a partir das opções já carregadas
   var dl=document.getElementById("dlTecBase");
   dl.innerHTML=((OPC.base_atendimento||[]).map(function(o){return'<option value="'+esc(o.valor)+'"></option>';})).join("");
+  renderWdays();renderChips("hab");renderChips("rot");
   var tb=document.querySelector("#tblTec tbody");tb.innerHTML='<tr><td colspan="6" class="empty">Carregando...</td></tr>';
   fetchTecnicos().then(function(list){
     TECNICOS=list||[];
@@ -316,10 +365,33 @@ function carregarTecnicos(){
     }).join("");
   }).catch(function(e){tb.innerHTML='<tr><td colspan="6" class="empty">Erro: '+(e.message||e)+'</td></tr>';});
 }
+
+/* --- chips (habilidades/rotas) --- */
+function arrDe(tipo){return tipo==="hab"?tecHab:tecRot;}
+function renderChips(tipo){
+  var arr=arrDe(tipo),box=document.getElementById(tipo==="hab"?"boxHab":"boxRot");
+  box.innerHTML=arr.length?arr.map(function(v,i){return'<span class="chip2">'+esc(v)+' <i class="fa-solid fa-xmark" onclick="delChip(\''+tipo+'\','+i+')"></i></span>';}).join(""):'<span style="color:var(--df);font-size:12px">nenhum</span>';
+}
+function addChip(tipo){
+  var inp=document.getElementById(tipo==="hab"?"inpHab":"inpRot"),v=inp.value.trim();if(!v)return;
+  var arr=arrDe(tipo);if(!arr.some(function(x){return x.toLowerCase()===v.toLowerCase();}))arr.push(v);
+  inp.value="";renderChips(tipo);
+}
+function delChip(tipo,i){arrDe(tipo).splice(i,1);renderChips(tipo);}
+
+/* --- dias da semana --- */
+function renderWdays(){
+  document.getElementById("wdays").innerHTML=WDIAS.map(function(w,i){return'<span class="wd'+(tecDias.indexOf(i)>=0?" on":"")+'" onclick="toggleWd('+i+')">'+w+'</span>';}).join("");
+}
+function toggleWd(d){var i=tecDias.indexOf(d);if(i>=0)tecDias.splice(i,1);else tecDias.push(d);renderWdays();}
+
 function limparTec(){
-  tecEditId=null;
+  tecEditId=null;tecHab=[];tecRot=[];tecDias=[1,2,3,4,5];EXC=[];
   ["tecNome","tecEmail","tecTel","tecBase"].forEach(function(id){document.getElementById(id).value="";});
   document.getElementById("tecCor").value="#4d9fff";document.getElementById("tecAtivo").checked=true;
+  document.getElementById("tecHi").value="08:00";document.getElementById("tecHf").value="18:00";
+  renderChips("hab");renderChips("rot");renderWdays();
+  document.getElementById("calWrap").style.display="none";
   document.getElementById("btnSalvarTec").innerHTML='<i class="fa-solid fa-floppy-disk"></i> Salvar técnico';
   var m=document.getElementById("msgTec");m.className="msg";m.textContent="";
 }
@@ -332,8 +404,17 @@ function editarTecnico(id){
   document.getElementById("tecBase").value=t.base_atendimento||"";
   document.getElementById("tecCor").value=t.cor||"#4d9fff";
   document.getElementById("tecAtivo").checked=!!t.ativo;
+  document.getElementById("tecHi").value=(t.hora_inicio||"08:00").slice(0,5);
+  document.getElementById("tecHf").value=(t.hora_fim||"18:00").slice(0,5);
+  tecHab=(t.habilidades||[]).slice();tecRot=(t.rotas||[]).slice();
+  tecDias=(t.dias_semana&&t.dias_semana.length?t.dias_semana:[1,2,3,4,5]).slice();
+  renderChips("hab");renderChips("rot");renderWdays();
   document.getElementById("btnSalvarTec").innerHTML='<i class="fa-solid fa-floppy-disk"></i> Salvar alterações';
-  document.getElementById("tecNome").focus();
+  // calendário de disponibilidade
+  document.getElementById("calWrap").style.display="block";
+  calRef=new Date();calRef.setDate(1);
+  fetchExcecoes(id).then(function(list){EXC=list||[];renderCal();}).catch(function(){EXC=[];renderCal();});
+  document.getElementById("tecNome").scrollIntoView({behavior:"smooth",block:"center"});
 }
 function salvarTecnico(){
   var obj={
@@ -342,7 +423,11 @@ function salvarTecnico(){
     telefone:document.getElementById("tecTel").value.trim()||null,
     base_atendimento:document.getElementById("tecBase").value.trim()||null,
     cor:document.getElementById("tecCor").value,
-    ativo:document.getElementById("tecAtivo").checked
+    ativo:document.getElementById("tecAtivo").checked,
+    habilidades:tecHab,rotas:tecRot,
+    hora_inicio:document.getElementById("tecHi").value||"08:00",
+    hora_fim:document.getElementById("tecHf").value||"18:00",
+    dias_semana:tecDias.slice().sort(function(a,b){return a-b;})
   };
   var m=document.getElementById("msgTec");m.className="msg";
   if(!obj.nome){m.className="msg bad";m.textContent="Informe o nome do técnico.";return;}
@@ -353,7 +438,35 @@ function salvarTecnico(){
 }
 function excluirTecnico(id,nome){
   if(!confirm("Excluir o técnico "+nome+"?"))return;
-  removeTecnico(id).then(carregarTecnicos).catch(function(e){alert("Erro ao excluir: "+(e.message||e));});
+  removeTecnico(id).then(function(){if(tecEditId===id)limparTec();carregarTecnicos();}).catch(function(e){alert("Erro ao excluir: "+(e.message||e));});
+}
+
+/* --- calendário de disponibilidade --- */
+function calNav(n){calRef.setMonth(calRef.getMonth()+n);renderCal();}
+function excDe(iso){return EXC.find(function(e){return e.data===iso;});}
+function renderCal(){
+  document.getElementById("calTit").textContent=calRef.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+  var y=calRef.getFullYear(),mo=calRef.getMonth();
+  var primeiro=new Date(y,mo,1).getDay(),dias=new Date(y,mo+1,0).getDate();
+  var html=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map(function(w){return'<div class="calh">'+w+'</div>';}).join("");
+  for(var i=0;i<primeiro;i++)html+='<div class="cald empty"></div>';
+  for(var d=1;d<=dias;d++){
+    var dt=new Date(y,mo,d),iso=isoDe(dt),wd=dt.getDay(),ex=excDe(iso),cls,tt;
+    if(ex){if(ex.tipo==="folga"){cls="folga";tt="Folga";}else{cls="extra";tt="Trabalho extra";}}
+    else if(tecDias.indexOf(wd)>=0){cls="work";tt="Trabalha";}
+    else{cls="mut";tt="Fora do expediente";}
+    html+='<div class="cald '+cls+'" title="'+tt+'" onclick="toggleDia(\''+iso+'\','+wd+')">'+d+'</div>';
+  }
+  document.getElementById("calGrid").innerHTML=html;
+}
+function toggleDia(iso,wd){
+  if(!tecEditId)return;
+  var ex=excDe(iso);
+  var p;
+  if(ex){p=removeExcecaoData(tecEditId,iso);}
+  else{var tipo=(tecDias.indexOf(wd)>=0)?"folga":"trabalho";p=setExcecao({tecnico_id:tecEditId,data:iso,tipo:tipo});}
+  p.then(function(){return fetchExcecoes(tecEditId);}).then(function(list){EXC=list||[];renderCal();})
+    .catch(function(e){alert("Erro: "+(e.message||e));});
 }
 
 /* ===== INIT ===== */
