@@ -1,0 +1,16 @@
+# Dados brutos / planilhas
+*.xlsx
+*.zip
+
+# Pasta de extração temporária do Apps Script (preview + originais já em legacy-apps-script/)
+extracted/
+
+# Dependências / sistema
+node_modules/
+.DS_Store
+Thumbs.db
+
+# Observação: assets/js/config.js contém a URL + anon key do Supabase.
+# A anon key é pública por design (protegida por RLS), então este projeto
+# a versiona para facilitar o deploy. Se preferir NÃO versionar, descomente:
+# assets/js/config.js

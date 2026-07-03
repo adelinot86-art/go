@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Entrar · Gestão Operacional</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/supabase.js"></script>
+<style>
+:root{--bg:#0a0a0f;--card:#15151f;--s1:rgba(255,255,255,.06);--s2:rgba(255,255,255,.12);
+  --tx:#f5f3ea;--dm:#a8a596;--df:#6b6857;--gold:#f5c542;--gold2:#e0a818;--cream:#fff8e6;--re:#ff5d6c;--gn:#3ddc97;
+  --FD:'Sora','Segoe UI',sans-serif;--FB:'Inter','Segoe UI',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--FB);background:var(--bg);color:var(--tx);min-height:100vh;display:grid;place-items:center;padding:20px;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;z-index:-1;
+  background:radial-gradient(1000px 520px at 20% -8%,rgba(245,197,66,.12),transparent 55%),
+             radial-gradient(820px 480px at 90% 10%,rgba(224,168,24,.08),transparent 52%),var(--bg)}
+.card{width:100%;max-width:400px;background:var(--card);border:1px solid var(--s1);border-radius:18px;
+  padding:32px 28px;box-shadow:0 30px 70px -30px rgba(0,0,0,.9)}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.bm{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:20px;color:#1a1405;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));box-shadow:0 0 26px rgba(245,197,66,.4)}
+h1{font-family:var(--FD);font-size:18px;font-weight:800;letter-spacing:-.3px;
+  background:linear-gradient(90deg,var(--cream),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{color:var(--dm);font-size:12px;margin-top:2px}
+label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--df);margin:16px 0 6px}
+input{width:100%;padding:11px 13px;border-radius:11px;background:#0c0c12;border:1px solid var(--s1);
+  color:var(--tx);font-family:var(--FB);font-size:13.5px;outline:none;transition:.2s}
+input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,197,66,.14)}
+.btn{width:100%;margin-top:22px;cursor:pointer;border:none;color:#1a1405;font-family:var(--FB);font-weight:700;font-size:14px;
+  padding:12px;border-radius:12px;background:linear-gradient(135deg,var(--gold),var(--gold2));
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s;box-shadow:0 10px 26px -12px rgba(245,197,66,.6)}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.msg{margin-top:14px;font-size:12.5px;min-height:16px;text-align:center}
+.msg.bad{color:var(--re)} .msg.ok{color:var(--gn)}
+footer{text-align:center;color:var(--df);font-size:10.5px;margin-top:18px;line-height:1.6}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">
+      <div class="bm"><i class="fa-solid fa-headset"></i></div>
+      <div><h1>Gestão Operacional</h1><div class="sub">Suporte Técnico · Canal Educação</div></div>
+    </div>
+    <form id="formLogin" onsubmit="return entrar(event)">
+      <label for="email">E-mail</label>
+      <input type="email" id="email" autocomplete="username" required placeholder="voce@exemplo.com">
+      <label for="senha">Senha</label>
+      <input type="password" id="senha" autocomplete="current-password" required placeholder="••••••••">
+      <button type="submit" class="btn" id="btnEntrar"><i class="fa-solid fa-right-to-bracket"></i> Entrar</button>
+      <div class="msg" id="msg"></div>
+    </form>
+    <footer>Acesso restrito. Use as credenciais cadastradas no Supabase.</footer>
+  </div>
+<script>
+// Se já houver sessão ativa, vai direto para o dashboard.
+sb.auth.getSession().then(function(r){ if(r.data && r.data.session) location.replace('index.html'); });
+
+function entrar(ev){
+  ev.preventDefault();
+  var email=document.getElementById('email').value.trim();
+  var senha=document.getElementById('senha').value;
+  var msg=document.getElementById('msg'); var btn=document.getElementById('btnEntrar');
+  msg.className='msg'; msg.textContent='';
+  btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Entrando...';
+  sb.auth.signInWithPassword({ email:email, password:senha }).then(function(res){
+    if(res.error){
+      msg.className='msg bad';
+      msg.textContent = /invalid/i.test(res.error.message) ? 'E-mail ou senha inválidos.' : res.error.message;
+      btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-right-to-bracket"></i> Entrar';
+      return;
+    }
+    msg.className='msg ok'; msg.textContent='Bem-vindo! Redirecionando...';
+    location.replace('index.html');
+  });
+  return false;
+}
+</script>
+</body>
+</html>

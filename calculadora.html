@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Calculadora de Serviços · Suporte Técnico</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<!-- Supabase (autenticação) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/supabase.js"></script>
+
+<!-- CSS compartilhado -->
+<!-- ============================================================
+  Estilos.html · CSS COMPARTILHADO (Index + Calculadora)
+  Inclua no <head> com:  include('Estilos')
+  Cada página adiciona depois um <style> com regras próprias.
+============================================================ -->
+<style>
+:root{
+  --bg:#0a0a0f;--bg2:#0e0e16;--card:#15151f;--card2:#1a1a24;
+  --s1:rgba(255,255,255,.06);--s2:rgba(255,255,255,.12);
+  --tx:#f5f3ea;--dm:#a8a596;--df:#6b6857;
+  --gold:#f5c542;--gold2:#e0a818;--amber:#ffb020;--cream:#fff8e6;
+  --gn:#3ddc97;--bl:#4d9fff;--re:#ff5d6c;--pu:#b48cff;
+  --R:15px;--SH:0 20px 50px -22px rgba(0,0,0,.85);
+  --FD:'Sora','Segoe UI',sans-serif;--FB:'Inter','Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--FB);background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;z-index:-2;
+  background:radial-gradient(1000px 520px at 10% -8%,rgba(245,197,66,.10),transparent 55%),
+             radial-gradient(820px 480px at 96% 0%,rgba(224,168,24,.08),transparent 52%),
+             radial-gradient(900px 600px at 50% 112%,rgba(255,176,32,.06),transparent 60%),var(--bg)}
+body::after{content:"";position:fixed;inset:0;z-index:-1;opacity:.5;
+  background-image:radial-gradient(circle at 1px 1px,rgba(245,197,66,.045) 1px,transparent 0);
+  background-size:34px 34px;mask-image:radial-gradient(circle at 50% 25%,#000,transparent 82%)}
+
+.W{margin:0 auto;padding:24px 28px 80px}
+
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 24px;
+  margin-bottom:22px;border-radius:var(--R);position:relative;overflow:hidden;
+  background:linear-gradient(120deg,rgba(245,197,66,.12),rgba(224,168,24,.04));
+  border:1px solid rgba(245,197,66,.18);box-shadow:var(--SH)}
+header::after{content:"";position:absolute;right:-30px;top:-70px;width:240px;height:240px;
+  background:radial-gradient(circle,rgba(245,197,66,.32),transparent 70%);filter:blur(12px)}
+.brd{display:flex;align-items:center;gap:15px;z-index:1}
+.bm{width:54px;height:54px;border-radius:14px;display:grid;place-items:center;font-size:24px;color:#1a1405;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));box-shadow:0 0 30px rgba(245,197,66,.4)}
+/* Logo compartilhado (Logo.html) */
+.logo-chip{background:#ffe2c4;border-radius:12px;padding:7px 14px;display:flex;align-items:center;
+  box-shadow:0 6px 18px -8px rgba(0,0,0,.55)}
+.logo-chip img{height:40px;width:auto;display:block;object-fit:contain}
+.brd h1{font-family:var(--FD);font-size:21px;font-weight:800;letter-spacing:-.3px;
+  background:linear-gradient(90deg,var(--cream),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.brd p{color:var(--dm);font-size:12px;margin-top:3px}
+.hr{display:flex;align-items:center;gap:11px;z-index:1;flex-wrap:wrap;justify-content:flex-end}
+
+.btn{cursor:pointer;border:1px solid rgba(245,197,66,.4);color:#1a1405;font-family:var(--FB);
+  font-size:13px;font-weight:700;padding:9px 17px;border-radius:11px;display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));transition:.22s;box-shadow:0 8px 22px -10px rgba(245,197,66,.6);text-decoration:none}
+.btn:hover{transform:translateY(-2px);box-shadow:0 14px 30px -12px rgba(245,197,66,.7)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.btn.ghost{background:rgba(255,255,255,.04);color:var(--tx);border-color:var(--s2);box-shadow:none}
+.btn.ghost:hover{background:rgba(245,197,66,.12);border-color:var(--gold)}
+
+/* SEÇÃO */
+.sec{display:flex;align-items:center;gap:10px;margin:30px 3px 16px;font-family:var(--FD);font-size:16px;font-weight:700}
+.sec .br{width:4px;height:20px;border-radius:4px;background:linear-gradient(var(--gold),var(--amber))}
+.sec small{color:var(--df);font-weight:400;font-size:12px;font-family:var(--FB)}
+
+/* CARD BASE */
+.crd{background:var(--card);border:1px solid var(--s1);border-radius:var(--R);padding:18px;box-shadow:var(--SH);min-width:0;transition:.2s}
+.crd:hover{border-color:rgba(245,197,66,.22)}
+
+footer{text-align:center;color:var(--df);font-size:11px;margin-top:50px;line-height:1.7}
+
+@media(max-width:720px){.W{padding:14px 12px 60px}header{flex-direction:column;align-items:flex-start}}
+</style>
+
+
+<!-- CSS específico da calculadora -->
+<style>
+.W{max-width:1100px}
+.tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.tab{cursor:pointer;padding:11px 18px;border-radius:12px;border:1px solid var(--s1);background:var(--card);
+  color:var(--dm);font-family:var(--FD);font-weight:600;font-size:13px;transition:.2s;display:flex;align-items:center;gap:8px}
+.tab:hover{border-color:rgba(245,197,66,.3);color:var(--tx)}
+.tab.active{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1405;border-color:transparent;box-shadow:0 8px 22px -10px rgba(245,197,66,.6)}
+.pane{display:none} .pane.active{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.crd{padding:20px}
+label.lab{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--df);margin-bottom:5px}
+select,input.qt,textarea{width:100%;padding:10px 12px;border-radius:10px;background:#0c0c12;border:1px solid var(--s1);
+  color:var(--tx);font-family:var(--FB);font-size:13px;outline:none;transition:.2s}
+select:focus,input.qt:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,197,66,.14)}
+select option{background:#15151f}
+select:disabled{opacity:.5}
+.finder textarea{min-height:120px;line-height:1.5;resize:vertical}
+.finder .row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+.kits-hint{font-size:11.5px;color:var(--bl)}
+.sugg{border:1px solid var(--s1);border-radius:12px;padding:13px 15px;margin-top:10px;background:rgba(0,0,0,.18);
+  display:flex;justify-content:space-between;align-items:center;gap:12px}
+.sugg:hover{border-color:rgba(245,197,66,.3)}
+.sugg .info{min-width:0}
+.sugg .lh{font-family:var(--FD);font-weight:600;font-size:13.5px;color:var(--cream)}
+.sugg .bl{font-size:11px;color:var(--dm);margin-top:2px}
+.sugg .mt{font-size:10.5px;color:var(--df);margin-top:4px}
+.sugg .mt b{color:var(--gold);font-weight:600}
+.sugg .right{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.sugg .ub{font-family:var(--FD);font-weight:700;font-size:16px;color:var(--gold);text-align:center}
+.sugg .ub small{display:block;font-family:var(--FB);font-size:8.5px;color:var(--df);font-weight:400;text-transform:uppercase}
+.conf{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:20px}
+.conf.alta{background:rgba(61,220,151,.16);color:var(--gn)} .conf.media{background:rgba(255,176,32,.16);color:var(--amber)} .conf.baixa{background:rgba(168,165,150,.16);color:var(--dm)}
+.addbtn{cursor:pointer;border:1px solid rgba(245,197,66,.4);color:#1a1405;font-weight:700;font-size:12px;padding:7px 13px;border-radius:9px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:.2s}
+.addbtn:hover{transform:translateY(-1px)}
+.empty{color:var(--df);font-size:12.5px;padding:16px;text-align:center}
+.atv{display:grid;grid-template-columns:1fr 1.6fr 90px 86px 40px;gap:10px;align-items:end;
+  padding:12px;border:1px solid var(--s1);border-radius:12px;margin-bottom:10px;background:rgba(0,0,0,.18)}
+.atv .uss{font-family:var(--FD);font-size:18px;font-weight:700;color:var(--gold);text-align:center;padding:8px 0;
+  background:rgba(245,197,66,.08);border-radius:9px}
+.atv .uss small{display:block;font-family:var(--FB);font-size:9px;color:var(--df);font-weight:400;text-transform:uppercase;letter-spacing:.4px}
+.atv .qt{text-align:center}
+.rm{cursor:pointer;width:38px;height:38px;border-radius:10px;border:1px solid var(--s1);background:rgba(255,93,108,.1);
+  color:var(--re);display:grid;place-items:center;font-size:14px;transition:.2s}
+.rm:hover{background:rgba(255,93,108,.22);border-color:var(--re)}
+.addrow{margin-top:4px}
+.desl-row{display:grid;grid-template-columns:1fr 160px;gap:14px;align-items:end}
+.peso-box{font-family:var(--FD);font-size:18px;font-weight:700;color:var(--amber);text-align:center;padding:9px 0;
+  background:rgba(255,176,32,.08);border-radius:10px}
+.peso-box small{display:block;font-family:var(--FB);font-size:9px;color:var(--df);font-weight:400;text-transform:uppercase;letter-spacing:.4px}
+.resG{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:6px}
+.resC{background:linear-gradient(145deg,var(--card2),var(--card));border:1px solid var(--s1);border-radius:14px;padding:18px;text-align:center}
+.resC .rl{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--df)}
+.resC .rv{font-family:var(--FD);font-size:30px;font-weight:800;margin-top:7px;color:var(--cream)}
+.resC.total{background:linear-gradient(135deg,rgba(245,197,66,.18),rgba(224,168,24,.05));border-color:rgba(245,197,66,.4)}
+.resC.total .rv{color:var(--gold)}
+.formula{margin-top:16px;font-size:12.5px;color:var(--gold);background:rgba(245,197,66,.07);
+  border-left:2px solid var(--gold);padding:11px 14px;border-radius:0 9px 9px 0;line-height:1.5}
+.formula b{color:var(--cream)}
+.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap}
+.simple-grid{display:grid;grid-template-columns:1fr 130px;gap:14px;align-items:end}
+@media(max-width:760px){
+  .atv{grid-template-columns:1fr 1fr;}.atv .uss,.atv .qt{grid-column:span 1}.rm{grid-column:span 2;width:100%}
+  .desl-row,.simple-grid{grid-template-columns:1fr}.resG{grid-template-columns:1fr}
+  .sugg{flex-direction:column;align-items:stretch}.sugg .right{justify-content:space-between}}
+</style>
+</head>
+<body>
+<div class="W">
+  <header>
+    <div class="brd">
+      <!-- Logo.html · Logo OROS compartilhado. Inclua com: include('Logo') -->
+<div class="logo-chip"><img src="data:image/png;base64,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" alt="OROS Soluções Educacionais"/></div>
+
+      <div>
+        <h1>Calculadora de Serviços</h1>
+        <p>USS/UST · base: aba Serviços executados</p>
+      </div>
+    </div>
+    <div class="hr">
+      <a class="btn ghost" href="index.html" target="_top"><i class="fa-solid fa-arrow-left"></i> Voltar ao Dashboard</a>
+      <button class="btn ghost" onclick="logout()" title="Sair"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-pane="p07" onclick="setTab('p07')"><i class="fa-solid fa-list-check"></i> Item 07 · USS com Deslocamento</div>
+    <div class="tab" data-pane="p11" onclick="setTab('p11')"><i class="fa-solid fa-truck-fast"></i> Item 11 · UST</div>
+    <div class="tab" data-pane="p13" onclick="setTab('p13')"><i class="fa-solid fa-truck-fast"></i> Item 13 · UST</div>
+  </div>
+
+  <!-- ===================== ITEM 07 ===================== -->
+  <div class="pane active" id="p07">
+
+    <div class="sec"><span class="br"></span> Localizador de Linha de Serviço <small>cole o detalhamento do chamado e receba a linha mais provável</small></div>
+    <div class="crd finder">
+      <label class="lab">Detalhamento da atividade (texto do técnico)</label>
+      <textarea id="finText" placeholder="Ex.: Foi realizada a troca do PC do kit 01 que estava com defeito (fonte queimada). Instalado webcam do kit 02. Rádio da antena com a porta RX queimada..."></textarea>
+      <div class="row">
+        <span class="kits-hint" id="kitsHint"></span>
+        <div style="display:flex;gap:8px">
+          <button class="btn ghost" onclick="limparFinder()"><i class="fa-solid fa-eraser"></i> Limpar</button>
+          <button class="btn" onclick="analisar()"><i class="fa-solid fa-wand-magic-sparkles"></i> Analisar e sugerir</button>
+        </div>
+      </div>
+      <div id="suggBox"></div>
+    </div>
+
+    <div class="sec"><span class="br"></span> Atividades <small>selecione bloco e linha · ou adicione pelas sugestões acima</small></div>
+    <div class="crd">
+      <div id="atividades"></div>
+      <button class="btn ghost addrow" onclick="addLinha()"><i class="fa-solid fa-plus"></i> Adicionar atividade</button>
+    </div>
+
+    <div class="sec"><span class="br"></span> Deslocamento</div>
+    <div class="crd">
+      <div class="desl-row">
+        <div>
+          <label class="lab">Faixa de deslocamento</label>
+          <select id="desl" onchange="calc()"><option value="">Sem deslocamento (peso 1)</option></select>
+        </div>
+        <div>
+          <label class="lab">Peso aplicado</label>
+          <div class="peso-box" id="pesoBox">1<small>multiplicador</small></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec"><span class="br"></span> Resultado</div>
+    <div class="crd">
+      <div class="resG">
+        <div class="resC"><div class="rl">Soma das Atividades (USS)</div><div class="rv" id="rSoma">0</div></div>
+        <div class="resC"><div class="rl">Peso do Deslocamento</div><div class="rv" id="rPeso">1</div></div>
+        <div class="resC total"><div class="rl">Total USS com Deslocamento</div><div class="rv" id="rTotal">0</div></div>
+      </div>
+      <div class="formula"><b>Fórmula:</b> (Soma das Atividades USS) × (Peso do Deslocamento) = <b><span id="fFormula">0 × 1 = 0</span></b></div>
+      <div class="actions">
+        <button class="btn ghost" onclick="limpar()"><i class="fa-solid fa-eraser"></i> Limpar tudo</button>
+        <button class="btn" id="btnPdf" onclick="gerarPDF()"><i class="fa-solid fa-file-pdf"></i> Baixar PDF da base de cálculo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ITEM 11 ===================== -->
+  <div class="pane" id="p11">
+    <div class="sec"><span class="br"></span> Calculadora de UST (Item 11) <small>deslocamento → UST</small></div>
+    <div class="crd">
+      <div class="simple-grid">
+        <div>
+          <label class="lab">Faixa de deslocamento</label>
+          <select id="desl11" onchange="calcSimples('11')"><option value="">Selecione...</option></select>
+        </div>
+        <div>
+          <label class="lab">Qtd de deslocamentos</label>
+          <input type="number" class="qt" id="qt11" min="1" step="1" value="1" oninput="calcSimples('11')">
+        </div>
+      </div>
+      <div class="resG" style="margin-top:18px">
+        <div class="resC"><div class="rl">UST por deslocamento</div><div class="rv" id="ust11">0</div></div>
+        <div class="resC"><div class="rl">Quantidade</div><div class="rv" id="q11v">1</div></div>
+        <div class="resC total"><div class="rl">Total UST</div><div class="rv" id="tot11">0</div></div>
+      </div>
+      <div class="formula"><b>Fórmula:</b> (UST do deslocamento) × (Qtd) = <b><span id="f11">0 × 1 = 0</span></b></div>
+      <div class="actions">
+        <button class="btn" id="btnPdf11" onclick="gerarPDFSimples('11')" disabled><i class="fa-solid fa-file-pdf"></i> Baixar PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ITEM 13 ===================== -->
+  <div class="pane" id="p13">
+    <div class="sec"><span class="br"></span> Calculadora de UST (Item 13) <small>deslocamento → UST</small></div>
+    <div class="crd">
+      <div class="simple-grid">
+        <div>
+          <label class="lab">Faixa de deslocamento</label>
+          <select id="desl13" onchange="calcSimples('13')"><option value="">Selecione...</option></select>
+        </div>
+        <div>
+          <label class="lab">Qtd de deslocamentos</label>
+          <input type="number" class="qt" id="qt13" min="1" step="1" value="1" oninput="calcSimples('13')">
+        </div>
+      </div>
+      <div class="resG" style="margin-top:18px">
+        <div class="resC"><div class="rl">UST por deslocamento</div><div class="rv" id="ust13">0</div></div>
+        <div class="resC"><div class="rl">Quantidade</div><div class="rv" id="q13v">1</div></div>
+        <div class="resC total"><div class="rl">Total UST</div><div class="rv" id="tot13">0</div></div>
+      </div>
+      <div class="formula"><b>Fórmula:</b> (UST do deslocamento) × (Qtd) = <b><span id="f13">0 × 1 = 0</span></b></div>
+      <div class="actions">
+        <button class="btn" id="btnPdf13" onclick="gerarPDFSimples('13')" disabled><i class="fa-solid fa-file-pdf"></i> Baixar PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>Calculadora de Serviços · Programa de Mediação Tecnológica — Canal Educação<br>
+  Valores de USS já consideram o fator de complexidade (aba Serviços executados). O localizador é uma sugestão automática — confira sempre a linha escolhida.</footer>
+</div>
+
+<!-- Dados das tabelas e lógica -->
+<!-- ============================================================
+  Dados_Servicos.html · Tabelas de dados da Calculadora.
+  Inclua ANTES de Calculadora_JS:  include('Dados_Servicos')
+  Expõe: SERV, DESL, UST11, UST13, FINDER, SIG_FALHA, SIG_INSTALA
+============================================================ -->
+<script>
+var SERV=[{"b": "Estação de trabalho e equipamentos", "l": "Acompanhar garantia de equipamento", "ube": 0.5, "f": "Baixa", "uss": 0.5}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar vídeoconferência", "ube": 4.0, "f": "Baixa", "uss": 4.0}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar, resolver videoconferência", "ube": 2.0, "f": "Média", "uss": 2.5}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar estação de trabalho", "ube": 2.0, "f": "Baixa", "uss": 2.0}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver estações de trabalho", "ube": 4.0, "f": "Média", "uss": 5.0}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar sistemas operacionais", "ube": 4.0, "f": "Média", "uss": 5.0}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver sistemas operacionais", "ube": 2.0, "f": "Média", "uss": 2.5}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar mesas de áudio", "ube": 2.0, "f": "Baixa", "uss": 2.0}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver mesas de áudio", "ube": 1.0, "f": "Média", "uss": 1.25}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar iluminação", "ube": 2.0, "f": "Baixa", "uss": 2.0}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver iluminação", "ube": 1.0, "f": "Média", "uss": 1.25}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar cameras e microfones", "ube": 2.0, "f": "Baixa", "uss": 2.0}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver cameras e microfones", "ube": 1.0, "f": "Média", "uss": 1.25}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar dispositivo móvel", "ube": 2.0, "f": "Baixa", "uss": 2.0}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver dispositivo móvel", "ube": 0.5, "f": "Média", "uss": 0.63}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar agente de monitoramento", "ube": 1.0, "f": "Baixa", "uss": 1.0}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver agente de monitoramento", "ube": 1.0, "f": "Média", "uss": 1.25}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar scanner", "ube": 2.0, "f": "Baixa", "uss": 2.0}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver scanner", "ube": 1.0, "f": "Média", "uss": 1.25}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar acesso a rede", "ube": 1.0, "f": "Baixa", "uss": 1.0}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver acesso a rede", "ube": 2.0, "f": "Média", "uss": 2.5}, {"b": "Estação de trabalho e equipamentos", "l": "Remanejar ou remover equipamento", "ube": 4.0, "f": "Baixa", "uss": 4.0}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar certificados digitais", "ube": 1.0, "f": "Baixa", "uss": 1.0}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver certificados digitais", "ube": 1.0, "f": "Média", "uss": 1.25}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar impressora", "ube": 1.0, "f": "Baixa", "uss": 1.0}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver impressora", "ube": 1.0, "f": "Média", "uss": 1.25}, {"b": "Apoio", "l": "Apoio Técnico Continuado", "ube": 160.0, "f": "Média", "uss": 200.0}, {"b": "Aplicativos e Aplicações", "l": "Instalar, configurar e disponibilizar aplicativos de escritório", "ube": 4.0, "f": "Baixa", "uss": 4.0}, {"b": "Aplicativos e Aplicações", "l": "Falha, analisar e resolver aplicativos de escritório", "ube": 2.0, "f": "Média", "uss": 2.5}, {"b": "Aplicativos e Aplicações", "l": "Instalar, configurar e disponibilizar sistemas desenvolvidos", "ube": 4.0, "f": "Média", "uss": 5.0}, {"b": "Aplicativos e Aplicações", "l": "Instalar, configurar e disponibilizar aplicativos diversos", "ube": 2.0, "f": "Baixa", "uss": 2.0}, {"b": "Aplicativos e Aplicações", "l": "Falha, análise e resolver aplicativos diversos", "ube": 2.0, "f": "Média", "uss": 2.5}, {"b": "Aplicativos e Aplicações", "l": "Instalar, configurar e disponibilizar antivírus", "ube": 2.0, "f": "Baixa", "uss": 2.0}, {"b": "Aplicativos e Aplicações", "l": "Falha, analisar e resolver antivírus", "ube": 1.0, "f": "Média", "uss": 1.25}, {"b": "Atendimento / Contato com usuários e clientes", "l": "Registro de Chamados e encaminhamento", "ube": 0.5, "f": "Baixa", "uss": 0.5}, {"b": "Atendimento / Contato com usuários e clientes", "l": "Acompanhamento de Chamados e retorno", "ube": 2.0, "f": "Baixa", "uss": 2.0}, {"b": "Atendimento / Contato com usuários e clientes", "l": "Orientar Usuários Internos - Remoto", "ube": 1.0, "f": "Média", "uss": 1.25}, {"b": "Atendimento / Contato com usuários e clientes", "l": "Orientar Usuários Internos - Local", "ube": 2.0, "f": "Média", "uss": 2.5}, {"b": "Atendimento / Contato com usuários e clientes", "l": "Orientar Usuários Externos", "ube": 1.0, "f": "Média", "uss": 1.25}, {"b": "Atendimento / Contato com usuários e clientes", "l": "Back Office Continuado", "ube": 160.0, "f": "Média", "uss": 200.0}, {"b": "Atendimento / Contato com usuários e clientes", "l": "Acompanhar reuniões", "ube": 4.0, "f": "Baixa", "uss": 4.0}, {"b": "Usuário e grupos", "l": "Instalar, configurar e disponibilizar objeto no AD (usuário, grupo e listas de distribuição)", "ube": 0.5, "f": "Baixa", "uss": 0.5}, {"b": "Usuário e grupos", "l": "Instalar, configurar e disponibilizar perfil de usuário", "ube": 0.5, "f": "Baixa", "uss": 0.5}, {"b": "Usuário e grupos", "l": "Falha, analisar e resolver perfil de usuário", "ube": 1.0, "f": "Média", "uss": 1.25}, {"b": "Usuário e grupos", "l": "Instalar, configurar e disponibilizar senha", "ube": 0.5, "f": "Baixa", "uss": 0.5}, {"b": "Usuário e grupos", "l": "Falha, analisar e resolver senha", "ube": 1.0, "f": "Média", "uss": 1.25}, {"b": "Usuário e grupos", "l": "Falha, analisar e resolver objeto no AD (usuário, grupo, e listas de distribuição)", "ube": 1.0, "f": "Média", "uss": 1.25}, {"b": "Correio Eletrônico em Estações de Trabalho", "l": "Instalar, configurar e disponibilizar correio eletrônico", "ube": 2.0, "f": "Baixa", "uss": 2.0}, {"b": "Correio Eletrônico em Estações de Trabalho", "l": "Falha, analisar e resolver correio eletrônico", "ube": 1.0, "f": "Média", "uss": 1.25}, {"b": "Internet", "l": "Instalar, configurar e disponibilizar Internet", "ube": 1.0, "f": "Baixa", "uss": 1.0}, {"b": "Internet", "l": "Falha, analisar e resolver internet", "ube": 2.0, "f": "Média", "uss": 2.5}, {"b": "Acesso rede e dados", "l": "Instalar, configurar e disponibilizar acesso a rede Wireless", "ube": 1.5, "f": "Baixa", "uss": 1.5}, {"b": "Acesso rede e dados", "l": "Falha, analisar e resolver acesso a rede Wireless", "ube": 1.0, "f": "Média", "uss": 1.25}, {"b": "Acesso rede e dados", "l": "Instalar, configurar e disponibilizar acesso a rede", "ube": 2.0, "f": "Baixa", "uss": 2.0}, {"b": "Acesso rede e dados", "l": "Falha, analisar e resolver acesso a rede", "ube": 1.0, "f": "Média", "uss": 1.25}, {"b": "Acesso rede e dados", "l": "Instalar, configurar e disponibilizar compartilhamento de rede", "ube": 1.0, "f": "Baixa", "uss": 1.0}, {"b": "Acesso rede e dados", "l": "Falha, analisar e resolver compartilhamento de rede", "ube": 1.0, "f": "Média", "uss": 1.25}, {"b": "Acesso rede e dados", "l": "Falha, analisar e resolver acesso a dados (arquivos e pasta)", "ube": 2.0, "f": "Média", "uss": 2.5}, {"b": "Acesso rede e dados", "l": "Instalar, configurar e disponibilizar acesso a dados (arquivos e pastas)", "ube": 1.0, "f": "Baixa", "uss": 1.0}, {"b": "Supervisão", "l": "Supervisão Continuada da Operação", "ube": 160.0, "f": "Média", "uss": 200.0}];
+
+var DESL=[["Até 100km da capital da UF", 1], ["De 101 km até 300km", 1.2], ["De 301 km até 600km", 1.5], ["De 601 km até 900km", 2], ["Acima de 901km", 2.5]];
+var UST11=[["Até 100km da capital da UF",1.5],["De 101 km até 300km",1.8],["De 301 km até 600km",2.25],["De 601 km até 900km",3],["Acima de 901km",3.75]];
+var UST13=[["Até 100km da capital da UF",1.5],["De 101 km até 300km",1.8],["De 301 km até 600km",2.25],["De 601 km até 900km",3],["Acima de 901km",3.75]];
+
+var FINDER=[{"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar estação de trabalho", "intent": "instala", "kw": [["computador", 3], ["pc ", 3], [" pc", 3], ["cpu", 3], ["desktop", 3], ["maquina", 2], ["gabinete", 3], ["fonte", 3], ["fonte queimada", 3], ["nao liga", 3], ["nao da imagem", 2], ["tela azul", 2], ["tela preta", 2], ["reinicia", 2], ["memoria", 2], [" ram", 2], ["placa-mae", 3], ["placa mae", 3], ["capacitor", 2], ["cooler", 2], ["botao power", 2], ["hd ", 2], ["ssd", 2], ["processador", 2], ["bios", 2], ["queimad", 2], ["estacao de trabalho", 3], ["cabo", 1], ["estabilizador", 1], ["nobreak", 1]]}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver estações de trabalho", "intent": "falha", "kw": [["computador", 3], ["pc ", 3], [" pc", 3], ["cpu", 3], ["desktop", 3], ["maquina", 2], ["gabinete", 3], ["fonte", 3], ["fonte queimada", 3], ["nao liga", 3], ["nao da imagem", 2], ["tela azul", 2], ["tela preta", 2], ["reinicia", 2], ["memoria", 2], [" ram", 2], ["placa-mae", 3], ["placa mae", 3], ["capacitor", 2], ["cooler", 2], ["botao power", 2], ["hd ", 2], ["ssd", 2], ["processador", 2], ["bios", 2], ["queimad", 2], ["estacao de trabalho", 3], ["cabo", 1], ["estabilizador", 1], ["nobreak", 1]]}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar sistemas operacionais", "intent": "instala", "kw": [["windows", 3], ["formatar", 3], ["formataç", 3], ["formatac", 3], ["sistema operacional", 3], ["reinstalar", 2], ["driver", 2], ["atualizar windows", 2], ["boot", 1], ["congelando", 1]]}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver sistemas operacionais", "intent": "falha", "kw": [["windows", 3], ["formatar", 3], ["formataç", 3], ["formatac", 3], ["sistema operacional", 3], ["reinstalar", 2], ["driver", 2], ["atualizar windows", 2], ["boot", 1], ["congelando", 1]]}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar vídeoconferência", "intent": "instala", "kw": [["videoconferencia", 3], ["video conferencia", 3], ["conferencia", 2], [" tv", 3], ["televisor", 3], ["televisao", 3], ["smart tv", 3], ["kit de mediacao", 3], ["mediacao", 2], ["projetor", 2], ["monitor", 2], ["sem imagem na tv", 2]]}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar, resolver videoconferência", "intent": "falha", "kw": [["videoconferencia", 3], ["video conferencia", 3], ["conferencia", 2], [" tv", 3], ["televisor", 3], ["televisao", 3], ["smart tv", 3], ["kit de mediacao", 3], ["mediacao", 2], ["projetor", 2], ["monitor", 2], ["sem imagem na tv", 2]]}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar mesas de áudio", "intent": "instala", "kw": [["caixa de som", 3], ["caixas de som", 3], ["alto-falante", 3], ["alto falante", 3], ["mesa de som", 3], ["mesa de audio", 3], ["sem som", 3], ["volume", 2], ["subwoofer", 2], ["microfonia", 2], ["chiado", 2], [" som ", 2], ["audio", 2]]}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver mesas de áudio", "intent": "falha", "kw": [["caixa de som", 3], ["caixas de som", 3], ["alto-falante", 3], ["alto falante", 3], ["mesa de som", 3], ["mesa de audio", 3], ["sem som", 3], ["volume", 2], ["subwoofer", 2], ["microfonia", 2], ["chiado", 2], [" som ", 2], ["audio", 2]]}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar cameras e microfones", "intent": "instala", "kw": [["webcam", 3], ["webcan", 3], ["web cam", 3], ["camera", 3], ["cameras", 3], ["microfone", 3], ["mic ", 2], ["pessima qualidade", 2], ["imagem ruim", 2], ["sem imagem", 1]]}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver cameras e microfones", "intent": "falha", "kw": [["webcam", 3], ["webcan", 3], ["web cam", 3], ["camera", 3], ["cameras", 3], ["microfone", 3], ["mic ", 2], ["pessima qualidade", 2], ["imagem ruim", 2], ["sem imagem", 1]]}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar iluminação", "intent": "instala", "kw": [["iluminacao", 3], ["lampada", 3], ["luminaria", 3], [" led ", 2], ["refletor", 2], ["foco de luz", 2]]}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver iluminação", "intent": "falha", "kw": [["iluminacao", 3], ["lampada", 3], ["luminaria", 3], [" led ", 2], ["refletor", 2], ["foco de luz", 2]]}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar dispositivo móvel", "intent": "instala", "kw": [["dispositivo movel", 3], ["tablet", 3], ["celular", 3], ["smartphone", 3]]}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver dispositivo móvel", "intent": "falha", "kw": [["dispositivo movel", 3], ["tablet", 3], ["celular", 3], ["smartphone", 3]]}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar agente de monitoramento", "intent": "instala", "kw": [["agente de monitoramento", 3], ["monitoramento", 2], ["zabbix", 3]]}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver agente de monitoramento", "intent": "falha", "kw": [["agente de monitoramento", 3], ["monitoramento", 2], ["zabbix", 3]]}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar scanner", "intent": "instala", "kw": [["scanner", 3], ["digitalizar", 3], ["digitalizacao", 2], ["escaner", 3]]}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver scanner", "intent": "falha", "kw": [["scanner", 3], ["digitalizar", 3], ["digitalizacao", 2], ["escaner", 3]]}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar impressora", "intent": "instala", "kw": [["impressora", 3], ["imprimir", 2], ["toner", 3], ["cartucho", 3], ["impressao", 2]]}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver impressora", "intent": "falha", "kw": [["impressora", 3], ["imprimir", 2], ["toner", 3], ["cartucho", 3], ["impressao", 2]]}, {"b": "Estação de trabalho e equipamentos", "l": "Instalar, configurar e disponibilizar certificados digitais", "intent": "instala", "kw": [["certificado digital", 3], ["certificados digitais", 3], ["certificado", 2], ["token", 2]]}, {"b": "Estação de trabalho e equipamentos", "l": "Falha, analisar e resolver certificados digitais", "intent": "falha", "kw": [["certificado digital", 3], ["certificados digitais", 3], ["certificado", 2], ["token", 2]]}, {"b": "Estação de trabalho e equipamentos", "l": "Remanejar ou remover equipamento", "intent": "any", "kw": [["remanejar", 3], ["remanejamento", 3], ["remover equipamento", 3], ["retirar equipamento", 3], ["transferir equipamento", 3], ["realocar", 3], ["recolher equipamento", 2], ["mudanca de sala", 2]]}, {"b": "Estação de trabalho e equipamentos", "l": "Acompanhar garantia de equipamento", "intent": "any", "kw": [["garantia", 3], ["acionar garantia", 3], [" rma", 2]]}, {"b": "Internet", "l": "Instalar, configurar e disponibilizar Internet", "intent": "instala", "kw": [["internet", 3], ["modem", 3], ["roteador", 3], ["router", 2], ["antena", 3], ["parabolica", 3], ["radio", 3], ["lnb", 3], ["sem sinal", 3], ["sem internet", 3], ["starlink", 3], ["sqf", 3], ["porta rx", 3], ["porto rx", 3], [" rx ", 2], ["alinhamento", 2], ["alinhad", 2], ["alinhar", 2], ["conexao", 2], ["oscila", 2], ["coaxial", 2], ["provedor", 2], ["sinal", 1]]}, {"b": "Internet", "l": "Falha, analisar e resolver internet", "intent": "falha", "kw": [["internet", 3], ["modem", 3], ["roteador", 3], ["router", 2], ["antena", 3], ["parabolica", 3], ["radio", 3], ["lnb", 3], ["sem sinal", 3], ["sem internet", 3], ["starlink", 3], ["sqf", 3], ["porta rx", 3], ["porto rx", 3], [" rx ", 2], ["alinhamento", 2], ["alinhad", 2], ["alinhar", 2], ["conexao", 2], ["oscila", 2], ["coaxial", 2], ["provedor", 2], ["sinal", 1]]}, {"b": "Acesso rede e dados", "l": "Instalar, configurar e disponibilizar acesso a rede Wireless", "intent": "instala", "kw": [["wireless", 3], ["wifi", 3], ["wi-fi", 3], ["rede sem fio", 3]]}, {"b": "Acesso rede e dados", "l": "Falha, analisar e resolver acesso a rede Wireless", "intent": "falha", "kw": [["wireless", 3], ["wifi", 3], ["wi-fi", 3], ["rede sem fio", 3]]}, {"b": "Acesso rede e dados", "l": "Instalar, configurar e disponibilizar acesso a rede", "intent": "instala", "kw": [["acesso a rede", 3], ["cabo de rede", 3], ["switch", 3], ["rede local", 2], ["ponto de rede", 2], ["rj45", 2]]}, {"b": "Acesso rede e dados", "l": "Falha, analisar e resolver acesso a rede", "intent": "falha", "kw": [["acesso a rede", 3], ["cabo de rede", 3], ["switch", 3], ["rede local", 2], ["ponto de rede", 2], ["rj45", 2]]}, {"b": "Acesso rede e dados", "l": "Instalar, configurar e disponibilizar compartilhamento de rede", "intent": "instala", "kw": [["compartilhamento", 3], ["compartilhar pasta", 3]]}, {"b": "Acesso rede e dados", "l": "Falha, analisar e resolver compartilhamento de rede", "intent": "falha", "kw": [["compartilhamento", 3], ["compartilhar pasta", 3]]}, {"b": "Acesso rede e dados", "l": "Instalar, configurar e disponibilizar acesso a dados (arquivos e pastas)", "intent": "instala", "kw": [["acesso a dados", 3], ["arquivos e pasta", 3], ["pasta de rede", 3], ["mapeamento de rede", 3], ["unidade de rede", 2], ["servidor de arquivos", 2]]}, {"b": "Acesso rede e dados", "l": "Falha, analisar e resolver acesso a dados (arquivos e pasta)", "intent": "falha", "kw": [["acesso a dados", 3], ["arquivos e pasta", 3], ["pasta de rede", 3], ["mapeamento de rede", 3], ["unidade de rede", 2], ["servidor de arquivos", 2]]}, {"b": "Aplicativos e Aplicações", "l": "Instalar, configurar e disponibilizar aplicativos de escritório", "intent": "instala", "kw": [["office", 3], ["word", 2], ["excel", 2], ["powerpoint", 2], ["aplicativo de escritorio", 3], ["pacote office", 3], ["libreoffice", 2]]}, {"b": "Aplicativos e Aplicações", "l": "Falha, analisar e resolver aplicativos de escritório", "intent": "falha", "kw": [["office", 3], ["word", 2], ["excel", 2], ["powerpoint", 2], ["aplicativo de escritorio", 3], ["pacote office", 3], ["libreoffice", 2]]}, {"b": "Aplicativos e Aplicações", "l": "Instalar, configurar e disponibilizar aplicativos diversos", "intent": "instala", "kw": [["aplicativos diversos", 3], ["aplicativo", 2], ["software", 2]]}, {"b": "Aplicativos e Aplicações", "l": "Falha, análise e resolver aplicativos diversos", "intent": "falha", "kw": [["aplicativos diversos", 3], ["aplicativo", 2], ["software", 2]]}, {"b": "Aplicativos e Aplicações", "l": "Instalar, configurar e disponibilizar sistemas desenvolvidos", "intent": "any", "kw": [["sistema desenvolvido", 3], ["sistema interno", 2], ["aplicacao desenvolvida", 3]]}, {"b": "Aplicativos e Aplicações", "l": "Instalar, configurar e disponibilizar antivírus", "intent": "instala", "kw": [["antivirus", 3], ["virus", 2], ["malware", 2]]}, {"b": "Aplicativos e Aplicações", "l": "Falha, analisar e resolver antivírus", "intent": "falha", "kw": [["antivirus", 3], ["virus", 2], ["malware", 2]]}, {"b": "Usuário e grupos", "l": "Instalar, configurar e disponibilizar senha", "intent": "instala", "kw": [["senha", 3], ["reset de senha", 3], ["resetar senha", 3], ["redefinir senha", 3]]}, {"b": "Usuário e grupos", "l": "Falha, analisar e resolver senha", "intent": "falha", "kw": [["senha", 3], ["reset de senha", 3], ["resetar senha", 3], ["redefinir senha", 3]]}, {"b": "Usuário e grupos", "l": "Instalar, configurar e disponibilizar perfil de usuário", "intent": "instala", "kw": [["perfil de usuario", 3], ["perfil do usuario", 3]]}, {"b": "Usuário e grupos", "l": "Falha, analisar e resolver perfil de usuário", "intent": "falha", "kw": [["perfil de usuario", 3], ["perfil do usuario", 3]]}, {"b": "Usuário e grupos", "l": "Instalar, configurar e disponibilizar objeto no AD (usuário, grupo e listas de distribuição)", "intent": "instala", "kw": [["active directory", 3], ["objeto no ad", 3], ["lista de distribuicao", 2], ["grupo de usuario", 2]]}, {"b": "Usuário e grupos", "l": "Falha, analisar e resolver objeto no AD (usuário, grupo, e listas de distribuição)", "intent": "falha", "kw": [["active directory", 3], ["objeto no ad", 3], ["lista de distribuicao", 2], ["grupo de usuario", 2]]}, {"b": "Correio Eletrônico em Estações de Trabalho", "l": "Instalar, configurar e disponibilizar correio eletrônico", "intent": "instala", "kw": [["correio eletronico", 3], ["email", 3], ["e-mail", 3], ["outlook", 3], ["webmail", 2]]}, {"b": "Correio Eletrônico em Estações de Trabalho", "l": "Falha, analisar e resolver correio eletrônico", "intent": "falha", "kw": [["correio eletronico", 3], ["email", 3], ["e-mail", 3], ["outlook", 3], ["webmail", 2]]}, {"b": "Atendimento / Contato com usuários e clientes", "l": "Registro de Chamados e encaminhamento", "intent": "any", "kw": [["registro de chamado", 3], ["abertura de chamado", 3]]}, {"b": "Atendimento / Contato com usuários e clientes", "l": "Orientar Usuários Internos - Local", "intent": "any", "kw": [["orientar usuario", 2], ["orientacao ao usuario", 2], ["treinamento presencial", 2]]}];
+
+var SIG_FALHA=["defeito", "queimad", "queimou", "mal funcion", "nao funciona", "nao liga", "parou", "travand", "travou", "travamento", "reinicia", "sem imagem", "sem som", "sem sinal", "sem internet", "pessima", "ruim", "problema", "falha", "troca", "trocar", "trocad", "troquei", "substitu", "repar", "consert", "resolver", "resolvi", "resolvido", "manuten", "vistoria", "analis", "oscil", "lento", "oxidad", "mau contato", "nao pega", "panne", "danificad", "quebrad", "atualiz", "nao da imagem"];
+var SIG_INSTALA=["instal", "configur", "disponibiliz", "montar", "montagem", "implant", "adicionar", "ativacao", "ativar", "habilitar", "criar", "nova instalacao", "novo equipamento"];
+</script>
+
+<!-- ============================================================
+  Calculadora_JS.html · Lógica da Calculadora.
+  Requer Dados_Servicos incluído antes. Inclua com:
+    include('Calculadora_JS')
+============================================================ -->
+<script>
+/* ===== UTILS ===== */
+var SEQ=0;
+function nfmt(n){ if(n==null||isNaN(n)) return "0"; return (+n).toLocaleString("pt-BR",{minimumFractionDigits:0,maximumFractionDigits:2}); }
+function norm(s){ return (s||"").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""); }
+function blocos(){ var s=[]; SERV.forEach(function(x){ if(s.indexOf(x.b)<0) s.push(x.b); }); return s; }
+function linhasDe(b){ return SERV.filter(function(x){ return x.b===b; }); }
+function findServ(b,l){ return SERV.find(function(x){ return x.b===b && x.l===l; })||null; }
+
+/* ===== TABS ===== */
+function setTab(id){
+  document.querySelectorAll(".tab").forEach(function(t){ t.classList.toggle("active", t.dataset.pane===id); });
+  document.querySelectorAll(".pane").forEach(function(p){ p.classList.toggle("active", p.id===id); });
+}
+
+/* ===== DESLOCAMENTO (item 07) ===== */
+function initDesl(){
+  var sel=document.getElementById("desl");
+  DESL.forEach(function(d){
+    var o=document.createElement("option");
+    o.value=d[0]; o.textContent=d[0]+"  (peso "+nfmt(d[1])+")"; o.dataset.peso=d[1];
+    sel.appendChild(o);
+  });
+}
+function pesoDesl(){
+  var sel=document.getElementById("desl");
+  if(!sel.value) return 1;
+  return parseFloat(sel.options[sel.selectedIndex].dataset.peso)||1;
+}
+
+/* ===== ATIVIDADES (item 07) ===== */
+function addLinha(presetB,presetL){
+  var id="atv"+(SEQ++);
+  var wrap=document.createElement("div");
+  wrap.className="atv"; wrap.id=id;
+  var optsB='<option value="">Selecione...</option>'+blocos().map(function(b){return '<option value="'+b.replace(/"/g,"&quot;")+'">'+b+'</option>';}).join("");
+  wrap.innerHTML=
+    '<div><label class="lab">Bloco de Serviço</label><select class="selB" onchange="onBloco(\''+id+'\')">'+optsB+'</select></div>'+
+    '<div><label class="lab">Linha de Serviço</label><select class="selL" onchange="calc()" disabled><option value="">Selecione o bloco...</option></select></div>'+
+    '<div><label class="lab">Qtd</label><input type="number" class="qt" min="1" step="1" value="1" oninput="calc()"></div>'+
+    '<div><div class="uss" data-uss="0">0<small>USS un.</small></div></div>'+
+    '<button class="rm" title="Remover" onclick="rmLinha(\''+id+'\')"><i class="fa-solid fa-trash"></i></button>';
+  document.getElementById("atividades").appendChild(wrap);
+  if(presetB){
+    var selB=wrap.querySelector(".selB"); selB.value=presetB; onBloco(id);
+    if(presetL){ var selL=wrap.querySelector(".selL"); selL.value=presetL; }
+  }
+  return wrap;
+}
+function rmLinha(id){
+  var el=document.getElementById(id); if(el) el.remove();
+  if(!document.querySelectorAll(".atv").length) addLinha();
+  calc();
+}
+function onBloco(id){
+  var w=document.getElementById(id);
+  var b=w.querySelector(".selB").value;
+  var selL=w.querySelector(".selL");
+  if(!b){ selL.innerHTML='<option value="">Selecione o bloco...</option>'; selL.disabled=true; calc(); return; }
+  var ls=linhasDe(b);
+  selL.innerHTML='<option value="">Selecione...</option>'+ls.map(function(x){return '<option value="'+x.l.replace(/"/g,"&quot;")+'">'+x.l+'</option>';}).join("");
+  selL.disabled=false; calc();
+}
+function linhasPreenchidas(){
+  var out=[];
+  document.querySelectorAll(".atv").forEach(function(w){
+    var b=w.querySelector(".selB").value, l=w.querySelector(".selL").value;
+    var qt=parseFloat(w.querySelector(".qt").value)||0;
+    var ussBox=w.querySelector(".uss");
+    var s=(b&&l)?findServ(b,l):null;
+    var ussUn=s?s.uss:0;
+    ussBox.dataset.uss=ussUn; ussBox.innerHTML=nfmt(ussUn)+'<small>USS un.</small>';
+    if(s&&qt>0) out.push({b:b,l:l,ube:s.ube,f:s.f,ussUn:ussUn,qt:qt,ussTot:ussUn*qt});
+  });
+  return out;
+}
+function calc(){
+  var ls=linhasPreenchidas();
+  var soma=ls.reduce(function(a,x){return a+x.ussTot;},0);
+  var peso=pesoDesl();
+  var total=soma*peso;
+  document.getElementById("pesoBox").innerHTML=nfmt(peso)+'<small>multiplicador</small>';
+  document.getElementById("rSoma").textContent=nfmt(soma);
+  document.getElementById("rPeso").textContent=nfmt(peso);
+  document.getElementById("rTotal").textContent=nfmt(total);
+  document.getElementById("fFormula").textContent=nfmt(soma)+" × "+nfmt(peso)+" = "+nfmt(total);
+  document.getElementById("btnPdf").disabled = ls.length===0;
+}
+function limpar(){
+  document.getElementById("atividades").innerHTML="";
+  document.getElementById("desl").value="";
+  SEQ=0; addLinha(); calc();
+}
+
+/* ===== LOCALIZADOR INTELIGENTE ===== */
+function temSinal(txt,arr){ for(var i=0;i<arr.length;i++){ if(txt.indexOf(arr[i])!==-1) return true; } return false; }
+function contarKits(txt){
+  var set={}; var re=/kit\s*0*([0-9]{1,2})/g, m;
+  while((m=re.exec(txt))!==null){ set[m[1]]=1; }
+  return Object.keys(set).length;
+}
+function analisar(){
+  var raw=document.getElementById("finText").value||"";
+  var txt=" "+norm(raw).replace(/\s+/g," ")+" ";
+  var box=document.getElementById("suggBox");
+  if(!raw.trim()){ box.innerHTML='<div class="empty">Cole o texto do detalhamento para receber sugestões.</div>'; document.getElementById("kitsHint").textContent=""; return; }
+
+  var hasF=temSinal(txt,SIG_FALHA), hasI=temSinal(txt,SIG_INSTALA);
+  var results=[];
+  FINDER.forEach(function(r){
+    var eq=0, hits=[];
+    r.kw.forEach(function(k){
+      var term=norm(k[0]);
+      if(txt.indexOf(term)!==-1){ eq+=k[1]; var ht=k[0].trim(); if(hits.indexOf(ht)<0) hits.push(ht); }
+    });
+    if(eq===0) return;
+    var intent=0;
+    if(r.intent==="falha"){ if(hasF) intent+=4; else if(hasI) intent-=2; }
+    else if(r.intent==="instala"){ if(hasI) intent+=4; else if(hasF) intent-=2; }
+    else { intent+=1; }
+    var score=eq+intent;
+    if(score>0) results.push({b:r.b,l:r.l,score:score,hits:hits.slice(0,4),uss:(findServ(r.b,r.l)||{}).uss});
+  });
+  results.sort(function(a,b){ return b.score-a.score; });
+  var seen={}, top=[];
+  for(var i=0;i<results.length;i++){ var key=results[i].b+"||"+results[i].l; if(seen[key]) continue; seen[key]=1; top.push(results[i]); if(top.length>=6) break; }
+
+  var nk=contarKits(txt);
+  document.getElementById("kitsHint").textContent = nk?("\u2139\ufe0f "+nk+" kit(s) mencionado(s) no texto"):"";
+
+  if(!top.length){ box.innerHTML='<div class="empty">Nenhuma linha de serviço correspondente encontrada. Selecione manualmente abaixo.</div>'; return; }
+  var maxS=top[0].score;
+  box.innerHTML='<div class="sec" style="margin:18px 3px 6px;font-size:13px"><span class="br"></span> Sugestões ('+top.length+')</div>'+
+    top.map(function(s){
+      var ratio=s.score/maxS;
+      var cf = ratio>=0.8?["alta","Alta"]:ratio>=0.5?["media","Média"]:["baixa","Baixa"];
+      return '<div class="sugg"><div class="info">'+
+        '<div class="lh">'+s.l+'</div>'+
+        '<div class="bl">'+s.b+'</div>'+
+        '<div class="mt">Palavras-chave: <b>'+(s.hits.join(", ")||"\u2014")+'</b></div></div>'+
+        '<div class="right">'+
+        '<span class="conf '+cf[0]+'">'+cf[1]+'</span>'+
+        '<div class="ub">'+nfmt(s.uss)+'<small>USS</small></div>'+
+        '<button class="addbtn" onclick="addFromSugg('+"'"+encodeURIComponent(s.b)+"','"+encodeURIComponent(s.l)+"'"+')"><i class="fa-solid fa-plus"></i> Adicionar</button>'+
+        '</div></div>';
+    }).join("");
+}
+function addFromSugg(b,l){
+  b=decodeURIComponent(b); l=decodeURIComponent(l);
+  var vazia=null;
+  document.querySelectorAll(".atv").forEach(function(w){
+    if(!vazia && !w.querySelector(".selB").value) vazia=w;
+  });
+  if(vazia){ var sb=vazia.querySelector(".selB"); sb.value=b; onBloco(vazia.id); vazia.querySelector(".selL").value=l; }
+  else { addLinha(b,l); }
+  calc();
+  document.querySelector('.sec .br').scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function limparFinder(){ document.getElementById("finText").value=""; document.getElementById("suggBox").innerHTML=""; document.getElementById("kitsHint").textContent=""; }
+
+/* ===== CALCULADORAS SIMPLES (item 11 / 13) ===== */
+function initSimple(item,arr){
+  var sel=document.getElementById("desl"+item);
+  arr.forEach(function(d){ var o=document.createElement("option"); o.value=d[0]; o.textContent=d[0]+"  ("+nfmt(d[1])+" UST)"; o.dataset.ust=d[1]; sel.appendChild(o); });
+}
+function calcSimples(item){
+  var sel=document.getElementById("desl"+item);
+  var ust = sel.value ? (parseFloat(sel.options[sel.selectedIndex].dataset.ust)||0) : 0;
+  var qt = parseFloat(document.getElementById("qt"+item).value)||0;
+  var total=ust*qt;
+  document.getElementById("ust"+item).textContent=nfmt(ust);
+  document.getElementById("q"+item+"v").textContent=nfmt(qt);
+  document.getElementById("tot"+item).textContent=nfmt(total);
+  document.getElementById("f"+item).textContent=nfmt(ust)+" × "+nfmt(qt)+" = "+nfmt(total);
+  document.getElementById("btnPdf"+item).disabled = !(sel.value && qt>0);
+}
+
+/* ===== PDF (helpers) ===== */
+function cabecalhoPDF(doc,titulo,sub){
+  var W=doc.internal.pageSize.getWidth();
+  doc.setFillColor(245,197,66); doc.rect(0,0,W,70,"F");
+  doc.setTextColor(26,20,5); doc.setFont("helvetica","bold"); doc.setFontSize(16); doc.text(titulo,40,32);
+  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.text(sub,40,50);
+  doc.setFontSize(9); doc.text("Gerado em: "+new Date().toLocaleString("pt-BR"), W-40, 50, {align:"right"});
+}
+function rodapePDF(doc,txt){
+  var yf=doc.internal.pageSize.getHeight()-30;
+  doc.setFontSize(8); doc.setTextColor(120,120,120); doc.text(txt,40,yf);
+}
+/* ===== PDF (item 07) ===== */
+function gerarPDF(){
+  var ls=linhasPreenchidas();
+  if(!ls.length){ alert("Selecione ao menos uma atividade."); return; }
+  var soma=ls.reduce(function(a,x){return a+x.ussTot;},0);
+  var sel=document.getElementById("desl");
+  var deslTxt=sel.value||"Sem deslocamento"; var peso=pesoDesl(); var total=soma*peso;
+  var doc=new window.jspdf.jsPDF({unit:"pt",format:"a4"});
+  cabecalhoPDF(doc,"Base de Cálculo — USS com Deslocamento","Suporte Técnico · Programa de Mediação Tecnológica (Item 07)");
+  doc.autoTable({
+    startY:90,
+    head:[["#","Bloco","Linha de Serviço","Compl.","UBE","USS un.","Qtd","USS total"]],
+    body:ls.map(function(x,i){return [String(i+1),x.b,x.l,x.f,nfmt(x.ube),nfmt(x.ussUn),String(x.qt),nfmt(x.ussTot)];}),
+    styles:{font:"helvetica",fontSize:8,cellPadding:4,textColor:[40,40,40],overflow:"linebreak"},
+    headStyles:{fillColor:[26,26,36],textColor:[245,197,66],fontStyle:"bold",fontSize:8},
+    alternateRowStyles:{fillColor:[248,245,235]},
+    columnStyles:{0:{cellWidth:22,halign:"center"},3:{cellWidth:48,halign:"center"},4:{cellWidth:38,halign:"right"},5:{cellWidth:44,halign:"right"},6:{cellWidth:30,halign:"center"},7:{cellWidth:50,halign:"right"}},
+    margin:{left:40,right:40}
+  });
+  doc.autoTable({
+    startY:doc.lastAutoTable.finalY+24,
+    body:[["Soma das Atividades (USS)",nfmt(soma)],["Deslocamento",deslTxt],["Peso do Deslocamento (multiplicador)",nfmt(peso)],
+      ["Fórmula","(Soma das Atividades) × (Peso) = "+nfmt(soma)+" × "+nfmt(peso)],["TOTAL USS COM DESLOCAMENTO",nfmt(total)]],
+    styles:{font:"helvetica",fontSize:10,cellPadding:6,textColor:[40,40,40]},
+    columnStyles:{0:{fontStyle:"bold",cellWidth:260,fillColor:[248,245,235]},1:{halign:"right"}},
+    didParseCell:function(d){ if(d.row.index===4){ d.cell.styles.fillColor=[245,197,66]; d.cell.styles.textColor=[26,20,5]; d.cell.styles.fontStyle="bold"; d.cell.styles.fontSize=12; } },
+    margin:{left:40,right:40}
+  });
+  rodapePDF(doc,"Valores de USS já consideram o fator de complexidade (aba Serviços executados). Documento gerado automaticamente.");
+  doc.save("base_calculo_USS_"+new Date().toISOString().slice(0,10)+".pdf");
+}
+/* ===== PDF (item 11 / 13) ===== */
+function gerarPDFSimples(item){
+  var sel=document.getElementById("desl"+item);
+  if(!sel.value){ alert("Selecione o deslocamento."); return; }
+  var ust=parseFloat(sel.options[sel.selectedIndex].dataset.ust)||0;
+  var qt=parseFloat(document.getElementById("qt"+item).value)||0;
+  var total=ust*qt;
+  var doc=new window.jspdf.jsPDF({unit:"pt",format:"a4"});
+  cabecalhoPDF(doc,"Base de Cálculo — UST (Item "+item+")","Suporte Técnico · Programa de Mediação Tecnológica");
+  doc.autoTable({
+    startY:90,
+    body:[["Deslocamento",sel.value],["UST por deslocamento",nfmt(ust)],["Quantidade de deslocamentos",String(qt)],
+      ["Fórmula","(UST) × (Qtd) = "+nfmt(ust)+" × "+nfmt(qt)],["TOTAL UST",nfmt(total)]],
+    styles:{font:"helvetica",fontSize:10,cellPadding:6,textColor:[40,40,40]},
+    columnStyles:{0:{fontStyle:"bold",cellWidth:260,fillColor:[248,245,235]},1:{halign:"right"}},
+    didParseCell:function(d){ if(d.row.index===4){ d.cell.styles.fillColor=[245,197,66]; d.cell.styles.textColor=[26,20,5]; d.cell.styles.fontStyle="bold"; d.cell.styles.fontSize=12; } },
+    margin:{left:40,right:40}
+  });
+  rodapePDF(doc,"Documento gerado automaticamente a partir da Calculadora de Serviços.");
+  doc.save("base_calculo_UST_item"+item+"_"+new Date().toISOString().slice(0,10)+".pdf");
+}
+
+/* ===== INIT ===== */
+window.addEventListener("load",function(){
+  requireAuth().then(function(user){ if(!user)return; });  // exige login
+  initDesl(); addLinha(); calc();
+  initSimple("11",UST11); initSimple("13",UST13);
+  calcSimples("11"); calcSimples("13");
+});
+</script>
+
+</body>
+</html>
