@@ -94,6 +94,7 @@ td{padding:9px 8px;border-top:1px solid rgba(255,255,255,.05);vertical-align:mid
 
   <div class="tabs">
     <div class="tab active" data-pane="pOpc" onclick="setTab('pOpc')"><i class="fa-solid fa-list-ul"></i> Opções dos campos</div>
+    <div class="tab" data-pane="pTec" onclick="setTab('pTec')"><i class="fa-solid fa-helmet-safety"></i> Técnicos</div>
     <div class="tab" data-pane="pUsr" onclick="setTab('pUsr')"><i class="fa-solid fa-users"></i> Usuários</div>
   </div>
 
@@ -115,6 +116,31 @@ td{padding:9px 8px;border-top:1px solid rgba(255,255,255,.05);vertical-align:mid
         <button class="btn" onclick="adicionarOpcao()"><i class="fa-solid fa-plus"></i> Adicionar</button>
       </div>
       <div class="msg" id="msgOpc"></div>
+    </div>
+  </div>
+
+  <!-- ===================== TÉCNICOS ===================== -->
+  <div class="pane" id="pTec">
+    <div class="crd">
+      <div class="sec"><i class="fa-solid fa-helmet-safety"></i> Cadastro de técnicos de campo</div>
+      <p style="color:var(--dm);font-size:12px;margin-bottom:16px">O técnico entra no app do celular com o <b>e-mail do login</b> e vê só os chamados atribuídos a ele (pelo nome). Crie o login na aba <b>Usuários</b> com o mesmo e-mail.</p>
+      <div class="grid2">
+        <div><label>Nome do técnico *</label><input id="tecNome" placeholder="Ex.: Matheus - Inovatech"></div>
+        <div><label>E-mail (login do técnico)</label><input id="tecEmail" type="email" placeholder="tecnico@exemplo.com"></div>
+        <div><label>Telefone</label><input id="tecTel" placeholder="(86) 90000-0000"></div>
+        <div><label>Base de atendimento</label><input id="tecBase" list="dlTecBase" autocomplete="off"><datalist id="dlTecBase"></datalist></div>
+        <div><label>Cor no Gantt</label><input id="tecCor" type="color" value="#4d9fff" style="height:42px;padding:4px"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:22px"><input type="checkbox" id="tecAtivo" checked style="width:auto"><label style="margin:0">Ativo</label></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+        <button class="btn" id="btnSalvarTec" onclick="salvarTecnico()"><i class="fa-solid fa-floppy-disk"></i> Salvar técnico</button>
+        <button class="btn ghost" onclick="limparTec()"><i class="fa-solid fa-eraser"></i> Limpar</button>
+      </div>
+      <div class="msg" id="msgTec"></div>
+
+      <div style="overflow-x:auto;margin-top:20px">
+        <table id="tblTec"><thead><tr><th>Nome</th><th>E-mail</th><th>Base</th><th>Cor</th><th>Ativo</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
     </div>
   </div>
 
@@ -150,6 +176,7 @@ function setTab(id){
   document.querySelectorAll(".tab").forEach(function(t){t.classList.toggle("active",t.dataset.pane===id);});
   document.querySelectorAll(".pane").forEach(function(p){p.classList.toggle("active",p.id===id);});
   if(id==="pUsr")carregarUsuarios();
+  if(id==="pTec")carregarTecnicos();
 }
 
 /* ===== OPÇÕES DOS CAMPOS ===== */
@@ -264,6 +291,69 @@ function excluirUsuario(id,email){
   var msg=document.getElementById("msgUsr");msg.className="msg";
   adminUsers("delete",{id:id}).then(function(){msg.className="msg ok";msg.textContent="Usuário excluído.";carregarUsuarios();})
     .catch(function(e){msg.className="msg bad";msg.textContent="Erro: "+(e.message||e);});
+}
+
+/* ===== TÉCNICOS ===== */
+var TECNICOS=[],tecEditId=null;
+function carregarTecnicos(){
+  // datalist de bases a partir das opções já carregadas
+  var dl=document.getElementById("dlTecBase");
+  dl.innerHTML=((OPC.base_atendimento||[]).map(function(o){return'<option value="'+esc(o.valor)+'"></option>';})).join("");
+  var tb=document.querySelector("#tblTec tbody");tb.innerHTML='<tr><td colspan="6" class="empty">Carregando...</td></tr>';
+  fetchTecnicos().then(function(list){
+    TECNICOS=list||[];
+    if(!TECNICOS.length){tb.innerHTML='<tr><td colspan="6" class="empty">Nenhum técnico cadastrado.</td></tr>';return;}
+    tb.innerHTML=TECNICOS.map(function(t){
+      return '<tr>'+
+        '<td>'+(t.nome||"—")+'</td>'+
+        '<td>'+(t.email||"—")+'</td>'+
+        '<td>'+(t.base_atendimento||"—")+'</td>'+
+        '<td><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:'+(t.cor||"#4d9fff")+';vertical-align:middle"></span></td>'+
+        '<td>'+(t.ativo?'<span class="st-good" style="font-weight:700">Sim</span>':'<span class="st-bad" style="color:var(--df)">Não</span>')+'</td>'+
+        '<td style="white-space:nowrap"><button class="btn sm ghost" onclick="editarTecnico('+t.id+')"><i class="fa-solid fa-pen"></i></button> '+
+        '<button class="btn sm danger" onclick="excluirTecnico('+t.id+',\''+esc(t.nome)+'\')"><i class="fa-solid fa-trash"></i></button></td>'+
+      '</tr>';
+    }).join("");
+  }).catch(function(e){tb.innerHTML='<tr><td colspan="6" class="empty">Erro: '+(e.message||e)+'</td></tr>';});
+}
+function limparTec(){
+  tecEditId=null;
+  ["tecNome","tecEmail","tecTel","tecBase"].forEach(function(id){document.getElementById(id).value="";});
+  document.getElementById("tecCor").value="#4d9fff";document.getElementById("tecAtivo").checked=true;
+  document.getElementById("btnSalvarTec").innerHTML='<i class="fa-solid fa-floppy-disk"></i> Salvar técnico';
+  var m=document.getElementById("msgTec");m.className="msg";m.textContent="";
+}
+function editarTecnico(id){
+  var t=TECNICOS.find(function(x){return x.id===id;});if(!t)return;
+  tecEditId=id;
+  document.getElementById("tecNome").value=t.nome||"";
+  document.getElementById("tecEmail").value=t.email||"";
+  document.getElementById("tecTel").value=t.telefone||"";
+  document.getElementById("tecBase").value=t.base_atendimento||"";
+  document.getElementById("tecCor").value=t.cor||"#4d9fff";
+  document.getElementById("tecAtivo").checked=!!t.ativo;
+  document.getElementById("btnSalvarTec").innerHTML='<i class="fa-solid fa-floppy-disk"></i> Salvar alterações';
+  document.getElementById("tecNome").focus();
+}
+function salvarTecnico(){
+  var obj={
+    nome:document.getElementById("tecNome").value.trim(),
+    email:document.getElementById("tecEmail").value.trim()||null,
+    telefone:document.getElementById("tecTel").value.trim()||null,
+    base_atendimento:document.getElementById("tecBase").value.trim()||null,
+    cor:document.getElementById("tecCor").value,
+    ativo:document.getElementById("tecAtivo").checked
+  };
+  var m=document.getElementById("msgTec");m.className="msg";
+  if(!obj.nome){m.className="msg bad";m.textContent="Informe o nome do técnico.";return;}
+  var btn=document.getElementById("btnSalvarTec");btn.disabled=true;
+  var acao=tecEditId?updateTecnico(tecEditId,obj):addTecnico(obj);
+  acao.then(function(){btn.disabled=false;m.className="msg ok";m.textContent=tecEditId?"Técnico atualizado.":"Técnico cadastrado.";limparTec();carregarTecnicos();})
+    .catch(function(e){btn.disabled=false;var dup=/duplicate|unique/i.test(e.message||"");m.className="msg bad";m.textContent=dup?"Já existe um técnico com esse nome.":"Erro: "+(e.message||e);});
+}
+function excluirTecnico(id,nome){
+  if(!confirm("Excluir o técnico "+nome+"?"))return;
+  removeTecnico(id).then(carregarTecnicos).catch(function(e){alert("Erro ao excluir: "+(e.message||e));});
 }
 
 /* ===== INIT ===== */

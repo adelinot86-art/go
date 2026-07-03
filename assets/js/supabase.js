@@ -113,6 +113,64 @@
       .then(function (res) { if (res.error) throw res.error; return true; });
   };
 
+  /* ===== Técnicos de campo ===== */
+  global.fetchTecnicos = function () {
+    return sb.from('tecnicos').select('*').order('nome')
+      .then(function (res) { if (res.error) throw res.error; return res.data || []; });
+  };
+  global.addTecnico = function (obj) {
+    return sb.from('tecnicos').insert(obj).select().single()
+      .then(function (res) { if (res.error) throw res.error; return res.data; });
+  };
+  global.updateTecnico = function (id, obj) {
+    return sb.from('tecnicos').update(obj).eq('id', id).select().single()
+      .then(function (res) { if (res.error) throw res.error; return res.data; });
+  };
+  global.removeTecnico = function (id) {
+    return sb.from('tecnicos').delete().eq('id', id)
+      .then(function (res) { if (res.error) throw res.error; return true; });
+  };
+  // Técnico do usuário logado (casado pelo e-mail).
+  global.meuTecnico = function () {
+    return sb.auth.getUser().then(function (r) {
+      var email = r.data && r.data.user && r.data.user.email;
+      if (!email) return null;
+      return sb.from('tecnicos').select('*').ilike('email', email).limit(1)
+        .then(function (res) { if (res.error) throw res.error; return (res.data && res.data[0]) || null; });
+    });
+  };
+  // Chamados de um técnico (por nome). Retorna registros crus (com colunas de field service).
+  global.fetchChamadosDoTecnico = function (nome) {
+    return sb.from('chamados').select('*').eq('tecnico', nome)
+      .order('agendado_em', { ascending: true, nullsFirst: false })
+      .then(function (res) { if (res.error) throw res.error; return res.data || []; });
+  };
+  // Agenda de um dia (todos os técnicos) — para o Gantt. diaISO = 'aaaa-mm-dd'.
+  global.fetchAgenda = function (diaISO) {
+    var ini = diaISO + 'T00:00:00', fim = diaISO + 'T23:59:59';
+    return sb.from('chamados').select('*').gte('agendado_em', ini).lte('agendado_em', fim)
+      .order('agendado_em', { ascending: true })
+      .then(function (res) { if (res.error) throw res.error; return res.data || []; });
+  };
+  // Transição de status feita pelo técnico: 'deslocamento' | 'execucao' | 'encerrado'.
+  global.setStatusTecnico = function (id, acao, extras) {
+    extras = extras || {};
+    var agora = new Date().toISOString();
+    var patch = {};
+    if (acao === 'deslocamento') { patch.status = 'EM DESLOCAMENTO'; patch.deslocamento_em = agora; }
+    else if (acao === 'execucao') { patch.status = 'EM EXECUÇÃO'; patch.execucao_em = agora; }
+    else if (acao === 'encerrado') {
+      patch.status = extras.nome ? ('ENCERRADO PELO TÉCNICO - ' + extras.nome) : 'ENCERRADO PELO TÉCNICO';
+      patch.encerrado_em = agora;
+      patch.data_encerramento = agora.slice(0, 10);
+      if (extras.nome) patch.encerrado_por = extras.nome;
+      if (extras.relatorio) patch.relatorio_tecnico = extras.relatorio;
+      if (extras.materiais) patch.materiais = extras.materiais;
+    } else { return Promise.reject(new Error('Ação inválida.')); }
+    return sb.from('chamados').update(patch).eq('id', id).select().single()
+      .then(function (res) { if (res.error) throw res.error; return res.data; });
+  };
+
   /* ===== Usuários (via Edge Function 'admin-users', que usa a service_role no servidor) ===== */
   global.adminUsers = function (action, payload) {
     return sb.functions.invoke('admin-users', { body: Object.assign({ action: action }, payload || {}) })

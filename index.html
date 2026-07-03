@@ -378,7 +378,7 @@ function pD(v){if(!v)return null;v=v.toString().trim();var m=v.match(/(\d{1,2})[
 function tly(arr,fn){var m={};arr.forEach(function(o){var k=fn(o);if(k){m[k]=(m[k]||0)+1;}});return m;}
 function topN(m,n){return Object.entries(m).sort(function(a,b){return b[1]-a[1];}).slice(0,n);}
 function uniq2(arr,fn){var s=new Set();arr.forEach(function(o){var v=fn(o);if(v&&v.trim()&&v!=="-"&&v!=="\u2014")s.add(v.trim());});return s.size;}
-function sCls(s){var n=nm(s);if(!n)return"vazio";if(n==="ok"||/finaliz|conclu|encerrad|resolvid/.test(n))return"concluido";if(/em execu/.test(n))return"execucao";if(/planejamento|rota/.test(n))return"rota";if(/pend/.test(n))return"pendente";return"outro";}
+function sCls(s){var n=nm(s);if(!n)return"vazio";if(n==="ok"||/finaliz|conclu|encerrad|resolvid/.test(n))return"concluido";if(/desloca/.test(n))return"deslocamento";if(/em execu/.test(n))return"execucao";if(/planejamento|rota/.test(n))return"rota";if(/pend/.test(n))return"pendente";return"outro";}
 function pCls(p){var n=nm(p);if(/urgent|criti/.test(n))return"Urgente";if(/alta/.test(n))return"Alta";if(/medi/.test(n))return"M\u00e9dia";if(/baix/.test(n))return"Baixa";return p||"N/D";}
 function shortDep(d){if(!d)return"";var m=d.match(/^["\s]*(\d+)\s*[-\u2013]?\s*(.+)/);if(m){var t=m[2].replace(/["-]+$/,"").trim();return m[1]+" - "+(t.length>34?t.substring(0,34)+"\u2026":t);}return d.length>38?d.substring(0,38)+"\u2026":d;}
 
@@ -744,7 +744,7 @@ var TBLF=[
   {id:"tfbase",lbl:"Base",col:"Base de Atendimento"},
   {id:"tfmun",lbl:"Munic\u00edpio",col:"Munic\u00edpio"}
 ];
-function sBadge(s){var c=sCls(s);var col=c==="concluido"?"#3ddc97":c==="execucao"?"#b48cff":c==="rota"?"#4d9fff":c==="pendente"?"#ffb020":"#a8a596";return'<span style="padding:2px 8px;border-radius:12px;font-size:10.5px;font-weight:600;background:'+col+'22;color:'+col+'">'+(s||"—")+'</span>';}
+function sBadge(s){var c=sCls(s);var col=c==="concluido"?"#3ddc97":c==="deslocamento"?"#36d6e7":c==="execucao"?"#b48cff":c==="rota"?"#4d9fff":c==="pendente"?"#ffb020":"#a8a596";return'<span style="padding:2px 8px;border-radius:12px;font-size:10.5px;font-weight:600;background:'+col+'22;color:'+col+'">'+(s||"—")+'</span>';}
 function pBadge(p){var v=pCls(p);var col=v==="Alta"||v==="Urgente"?"#ff5d6c":v==="M\u00e9dia"?"#ffb020":"#3ddc97";return'<span style="padding:2px 8px;border-radius:12px;font-size:10.5px;font-weight:600;background:'+col+'22;color:'+col+'">'+v+'</span>';}
 
 /* ---- MULTI-SELECT genérico ---- */
@@ -878,12 +878,14 @@ var CAMPO_DE={
   "Município":"municipio",
   "Materiais":"materiais"
 };
-var OPCOES={};        // preenchido no init via fetchOpcoes()
-var CAD_EDIT_NUM=null; // se != null, o modal está editando este Nº Chamado
+var OPCOES={};          // preenchido no init via fetchOpcoes()
+var TECNICOS_NOMES=[];  // nomes dos técnicos ativos (tabela tecnicos)
+var CAD_EDIT_NUM=null;  // se != null, o modal está editando este Nº Chamado
 function cadId(col){return "cad_"+nm(col).replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");}
 function distintosCol(col){var s=new Set();CH.forEach(function(o){var v=g(o,col);if(v&&v.trim()&&v!=="-"&&v!=="—")s.add(v.trim());});return Array.from(s).sort(function(a,b){return a.localeCompare(b,"pt-BR");});}
-// Opções de um campo: usa as configuradas (Configurações) se houver; senão, valores distintos dos chamados.
+// Opções de um campo: técnico vem da tabela de técnicos; demais, das Configurações; senão, valores distintos dos chamados.
 function opcoesDoCampo(col){
+  if(col==="Técnico Responsável"&&TECNICOS_NOMES.length)return TECNICOS_NOMES;
   var campo=CAMPO_DE[col];
   if(campo&&OPCOES[campo]&&OPCOES[campo].length)return OPCOES[campo].map(function(o){return o.valor;});
   return distintosCol(col);
@@ -1001,6 +1003,7 @@ window.addEventListener("load",function(){
     if(!user)return;
     var ue=document.getElementById("userEmail");if(ue)ue.textContent=user.email||"conectado";
     fetchOpcoes().then(function(m){OPCOES=m||{};}).catch(function(e){console.warn("Opções não carregadas:",e);});
+    fetchTecnicos().then(function(list){TECNICOS_NOMES=(list||[]).filter(function(t){return t.ativo!==false;}).map(function(t){return t.nome;});}).catch(function(e){console.warn("Técnicos não carregados:",e);});
     carregarDados(false);
   });
 });
