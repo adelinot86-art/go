@@ -160,6 +160,18 @@
     return sb.from('chamados').select('*').not('tecnico', 'is', null)
       .then(function (res) { if (res.error) throw res.error; return (res.data || []).filter(function (c) { return String(c.tecnico || '').trim() && c.tecnico !== '-'; }); });
   };
+  // Todos os chamados (registros crus) — base do Gantt + barra lateral.
+  global.fetchChamadosTodos = function () {
+    return sb.from('chamados').select('*')
+      .then(function (res) { if (res.error) throw res.error; return res.data || []; });
+  };
+  // Atribui técnico + agenda numa tacada só (usado no arrastar-soltar).
+  global.atribuirAgendar = function (id, tecnicoNome, agendadoIso, dur) {
+    var patch = { agendado_em: agendadoIso, duracao_min: dur || 60 };
+    if (tecnicoNome) patch.tecnico = tecnicoNome;
+    return sb.from('chamados').update(patch).eq('id', id).select().single()
+      .then(function (res) { if (res.error) throw res.error; return res.data; });
+  };
 
   // Agenda de um dia (todos os técnicos) — para o Gantt. diaISO = 'aaaa-mm-dd'.
   global.fetchAgenda = function (diaISO) {
