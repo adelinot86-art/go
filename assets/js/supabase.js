@@ -217,6 +217,20 @@
       .then(function (res) { if (res.error) throw res.error; return res.data; });
   };
 
+  /* ===== Notificações do técnico ===== */
+  global.criarNotificacao = function (obj) {
+    return sb.from('notificacoes').insert(obj)
+      .then(function (res) { if (res.error) throw res.error; return true; });
+  };
+  global.fetchNotificacoes = function (nome) {
+    return sb.from('notificacoes').select('*').ilike('tecnico_nome', nome).order('created_at', { ascending: false }).limit(30)
+      .then(function (res) { if (res.error) throw res.error; return res.data || []; });
+  };
+  global.marcarNotificacoesLidas = function (nome) {
+    return sb.from('notificacoes').update({ lida: true }).ilike('tecnico_nome', nome).eq('lida', false)
+      .then(function (res) { if (res.error) throw res.error; return true; });
+  };
+
   /* ===== Usuários (via Edge Function 'admin-users', que usa a service_role no servidor) ===== */
   global.adminUsers = function (action, payload) {
     return sb.functions.invoke('admin-users', { body: Object.assign({ action: action }, payload || {}) })

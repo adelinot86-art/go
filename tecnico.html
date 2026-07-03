@@ -27,6 +27,7 @@ body{font-family:var(--FB);background:var(--bg);color:var(--tx);min-height:100vh
 .ico{width:38px;height:38px;border-radius:10px;border:1px solid var(--s1);background:rgba(255,255,255,.04);color:var(--dm);
   display:grid;place-items:center;font-size:15px;cursor:pointer}
 .ico:active{background:rgba(245,197,66,.14)}
+.nbadge{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;background:var(--re);color:#fff;font-size:9px;font-weight:800;display:grid;place-items:center}
 .wrap{max-width:640px;margin:0 auto;padding:14px 12px}
 .tabs{display:flex;gap:8px;margin-bottom:14px}
 .tabx{flex:1;text-align:center;padding:10px;border-radius:11px;border:1px solid var(--s1);background:var(--card);
@@ -76,6 +77,7 @@ body{font-family:var(--FB);background:var(--bg);color:var(--tx);min-height:100vh
       <div><div class="nm" id="tecNome">—</div><div class="dt" id="hoje">—</div></div>
     </div>
     <div class="acts">
+      <div class="ico" onclick="abrirNotif()" title="Notificações" style="position:relative"><i class="fa-regular fa-bell"></i><span class="nbadge" id="nbadge" style="display:none"></span></div>
       <div class="ico" onclick="carregar()" title="Atualizar"><i class="fa-solid fa-rotate"></i></div>
       <div class="ico" onclick="logout()" title="Sair"><i class="fa-solid fa-right-from-bracket"></i></div>
     </div>
@@ -87,6 +89,15 @@ body{font-family:var(--FB);background:var(--bg);color:var(--tx);min-height:100vh
       <div class="tabx" id="tabFeitos" onclick="setAba('feitos')">Encerrados <span class="cnt" id="cFeitos"></span></div>
     </div>
     <div id="lista"><div class="loading"><i class="fa-solid fa-spinner fa-spin"></i> Carregando...</div></div>
+  </div>
+
+  <!-- Sheet de notificações -->
+  <div class="ov" id="ovNot">
+    <div class="sheet">
+      <h3><i class="fa-regular fa-bell"></i> Notificações</h3>
+      <div id="notList" style="max-height:52vh;overflow:auto"></div>
+      <div class="row"><button class="b cancel" onclick="fecharNot()">Fechar</button></div>
+    </div>
   </div>
 
   <!-- Sheet de encerramento -->
@@ -119,9 +130,35 @@ function setAba(a){ABA=a;document.getElementById("tabAtivos").classList.toggle("
 
 function carregar(){
   document.getElementById("lista").innerHTML='<div class="loading"><i class="fa-solid fa-spinner fa-spin"></i> Carregando...</div>';
-  fetchChamadosDoTecnico(TEC.nome).then(function(rows){CHAMADOS=rows||[];render();})
+  fetchChamadosDoTecnico(TEC.nome).then(function(rows){CHAMADOS=rows||[];render();carregarNotif();})
     .catch(function(e){document.getElementById("lista").innerHTML='<div class="empty">Erro ao carregar: '+(e.message||e)+'</div>';});
 }
+
+/* ===== NOTIFICAÇÕES ===== */
+var NOTIFS=[];
+function carregarNotif(){
+  if(!TEC)return;
+  fetchNotificacoes(TEC.nome).then(function(list){
+    NOTIFS=list||[];
+    var n=NOTIFS.filter(function(x){return !x.lida;}).length;
+    var b=document.getElementById("nbadge");
+    if(n>0){b.textContent=n>9?"9+":n;b.style.display="grid";}else b.style.display="none";
+  }).catch(function(){});
+}
+function abrirNotif(){
+  var box=document.getElementById("notList");
+  box.innerHTML=NOTIFS.length?NOTIFS.map(function(x){
+    var quando=x.created_at?new Date(x.created_at).toLocaleString("pt-BR"):"";
+    return '<div style="padding:11px;border:1px solid var(--s1);border-radius:11px;margin-bottom:8px;background:'+(x.lida?"transparent":"rgba(245,197,66,.07)")+'">'+
+      '<div style="font-size:13.5px">'+(x.mensagem||"")+'</div>'+
+      '<div style="font-size:10.5px;color:var(--df);margin-top:4px">'+quando+'</div></div>';
+  }).join(""):'<div class="empty">Nenhuma notificação.</div>';
+  document.getElementById("ovNot").classList.add("on");
+  if(NOTIFS.some(function(x){return !x.lida;})){
+    marcarNotificacoesLidas(TEC.nome).then(function(){NOTIFS.forEach(function(x){x.lida=true;});document.getElementById("nbadge").style.display="none";}).catch(function(){});
+  }
+}
+function fecharNot(){document.getElementById("ovNot").classList.remove("on");}
 
 function render(){
   var ativos=CHAMADOS.filter(function(c){return estado(c.status)!=="encerrado";});

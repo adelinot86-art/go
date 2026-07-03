@@ -100,6 +100,14 @@ h1 i{color:var(--gold)}
 .dl{font-size:12.5px;color:var(--dm);line-height:1.85}
 .dl b{color:var(--tx)}
 .rotainfo{margin-top:12px;font-size:12px;color:var(--gold);background:rgba(245,197,66,.08);border-left:2px solid var(--gold);padding:8px 11px;border-radius:0 8px 8px 0;min-height:18px}
+.rotapanel{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.rp-h{font-size:11px;color:var(--dm);margin-bottom:2px}
+.rp-i{display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--s1);border-radius:9px;padding:7px 9px;font-size:12px;cursor:grab}
+.rp-i:hover{border-color:rgba(245,197,66,.4)}
+.rp-i:active{cursor:grabbing}
+.rp-i b{font-family:var(--FD)}
+.rp-i .rp-n{width:20px;height:20px;border-radius:50%;background:rgba(245,197,66,.15);color:var(--gold);display:grid;place-items:center;font-size:11px;font-weight:700;flex-shrink:0}
+.rp-i i{margin-left:auto;color:var(--df)}
 .leaflet-popup-content-wrapper{background:#15151f;color:var(--tx);border-radius:10px;border:1px solid var(--s2)}
 .leaflet-popup-tip{background:#15151f}
 .mp b{font-family:var(--FD);color:var(--gold)}
@@ -157,6 +165,7 @@ h1 i{color:var(--gold)}
           <h3><i class="fa-solid fa-circle-info"></i> Atividade</h3>
           <div class="dl" id="detalhe">Selecione uma atividade no Gantt, no mapa ou na barra lateral.</div>
           <div class="rotainfo" id="rotaInfo"></div>
+          <div class="rotapanel" id="rotaPanel"></div>
         </div>
       </div>
     </div>
@@ -200,6 +209,7 @@ h1 i{color:var(--gold)}
 var H0=6,H1=20,PXH=64;
 var DIA=isoHoje(),TECNICOS=[],CHAMADOS=[],EXCECOES=[];
 var MAP=null,ML=null,ROTA=null,MK={},SEL=null,agId=null;
+var ROTA_TEC=null,ROTA_STOPS=[],rpFrom=null;
 
 function nm(s){return(s||"").toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," ").trim();}
 function cap(s){return(s||"").toLowerCase().replace(/\b\w/g,function(c){return c.toUpperCase();});}
@@ -313,18 +323,32 @@ function limparFiltros(){["fNum","fMun","fDep","fSt","fData"].forEach(function(i
 /* ===== ARRASTAR-SOLTAR ===== */
 function arrastar(e,id){e.dataTransfer.setData("text/plain",String(id));e.dataTransfer.effectAllowed="move";}
 function permitir(e){e.preventDefault();e.dataTransfer.dropEffect="move";}
+function temHabilidade(tec,c){
+  var habs=(tec&&tec.habilidades)||[];if(!habs.length)return true; // sem habilidades cadastradas: não bloqueia
+  var tipo=nm(c&&c.tipo_atendimento||""),dep=nm(c&&c.departamento||"");
+  if(!tipo&&!dep)return true;
+  return habs.some(function(h){var hn=nm(h);if(!hn)return false;if(tipo&&(tipo.indexOf(hn)>=0||hn.indexOf(tipo)>=0))return true;if(dep&&dep.indexOf(hn)>=0)return true;return false;});
+}
 function soltar(e,nome){
   e.preventDefault();e.currentTarget.classList.remove("dragover");
   var id=parseInt(e.dataTransfer.getData("text/plain"),10);if(!id)return;
+  var c=CHAMADOS.find(function(x){return x.id===id;});
+  var tec=TECNICOS.find(function(t){return t.nome===nome;});
+  if(tec&&c&&!temHabilidade(tec,c)){
+    if(!confirm('O técnico "'+nome+'" não tem habilidade compatível com "'+(c.tipo_atendimento||"—")+'".\nAtribuir mesmo assim?'))return;
+  }
   var rect=e.currentTarget.getBoundingClientRect();
   var x=e.clientX-rect.left;
   var mins=Math.max(0,Math.round((x/PXH*60)/15)*15);
   var h=H0+Math.floor(mins/60),m=mins%60;if(h>=H1){h=H1-1;m=45;}
   var hora=("0"+h).slice(-2)+":"+("0"+m).slice(-2);
   var iso=new Date(DIA+"T"+hora+":00").toISOString();
-  var c=CHAMADOS.find(function(x){return x.id===id;});var dur=(c&&c.duracao_min)||60;
+  var dur=(c&&c.duracao_min)||60;
   atribuirAgendar(id,nome,iso,dur).then(function(rec){
     var i=CHAMADOS.findIndex(function(x){return x.id===id;});if(i>=0)CHAMADOS[i]=rec;
+    // notifica o técnico (não bloqueia em caso de erro)
+    criarNotificacao({tecnico_nome:nome,chamado_id:id,num_chamado:rec.num_chamado,
+      mensagem:"Novo chamado #"+rec.num_chamado+" — "+diaLocalDe(iso).split("-").reverse().join("/")+" "+hora+" · "+cap(rec.municipio||"")}).catch(function(){});
     SEL=id;render();atualizarDetalhe(id);
   }).catch(function(err){alert("Erro ao agendar: "+(err.message||err));});
 }
@@ -424,15 +448,20 @@ function removerHorario(id){
     .catch(function(e){alert("Erro: "+(e.message||e));});
 }
 
-/* ===== ROTA (OSRM) ===== */
+/* ===== ROTA (OSRM) + reordenação ===== */
 function rota(nome){
-  var acts=CHAMADOS.filter(function(c){return c.tecnico===nome && diaLocalDe(c.agendado_em)===DIA;})
+  ROTA_TEC=nome;
+  ROTA_STOPS=CHAMADOS.filter(function(c){return c.tecnico===nome && diaLocalDe(c.agendado_em)===DIA;})
     .sort(function(a,b){return new Date(a.agendado_em)-new Date(b.agendado_em);});
-  var pts=[],semCoord=0;
-  acts.forEach(function(c){var co=coordDe(c.municipio);if(co)pts.push(co);else semCoord++;});
+  desenharRotaMapa();
+  renderRotaPanel();
+}
+function desenharRotaMapa(){
   var info=document.getElementById("rotaInfo");
-  if(pts.length<2){info.textContent="Rota de "+nome+": precisa de 2+ atividades agendadas com coordenada de município.";return;}
-  info.textContent="Calculando rota de "+nome+"...";
+  var pts=[],semCoord=0;
+  ROTA_STOPS.forEach(function(c){var co=coordDe(c.municipio);if(co)pts.push(co);else semCoord++;});
+  if(pts.length<2){info.textContent="Rota de "+(ROTA_TEC||"")+": precisa de 2+ atividades agendadas com coordenada de município.";if(ROTA){ROTA.remove();ROTA=null;}return;}
+  info.textContent="Calculando rota de "+ROTA_TEC+"...";
   var coordStr=pts.map(function(p){return p[1]+","+p[0];}).join(";");
   fetch("https://router.project-osrm.org/route/v1/driving/"+coordStr+"?overview=full&geometries=geojson")
     .then(function(r){return r.json();})
@@ -443,9 +472,34 @@ function rota(nome){
       ROTA=L.polyline(latlngs,{color:"#f5c542",weight:4,opacity:.9}).addTo(MAP);
       try{MAP.fitBounds(ROTA.getBounds().pad(0.2));}catch(e){}
       var km=(j.routes[0].distance/1000).toFixed(1),min=Math.round(j.routes[0].duration/60);
-      info.innerHTML="<b>"+esc(nome)+"</b>: "+pts.length+" paradas · "+km+" km · ~"+min+" min"+(semCoord?" · "+semCoord+" sem coord.":"")+" <span style='color:var(--df)'>(OSRM/OSM)</span>";
+      info.innerHTML="<b>"+esc(ROTA_TEC)+"</b>: "+pts.length+" paradas · "+km+" km · ~"+min+" min"+(semCoord?" · "+semCoord+" sem coord.":"")+" <span style='color:var(--df)'>(OSRM/OSM)</span>";
     })
     .catch(function(e){info.textContent="Erro ao gerar rota: "+e;});
+}
+function renderRotaPanel(){
+  var box=document.getElementById("rotaPanel");if(!box)return;
+  if(!ROTA_STOPS||ROTA_STOPS.length<2){box.innerHTML="";return;}
+  box.innerHTML='<div class="rp-h">Ordem da rota — arraste para reordenar (reencaixa os horários)</div>'+
+    ROTA_STOPS.map(function(c,i){
+      return '<div class="rp-i" draggable="true" ondragstart="rpDrag(event,'+i+')" ondragover="event.preventDefault()" ondrop="rpDrop(event,'+i+')">'+
+        '<span class="rp-n">'+(i+1)+'</span> <b>#'+c.num_chamado+'</b> '+fmtHora(c.agendado_em)+' · '+cap(c.municipio||"—")+'<i class="fa-solid fa-grip-vertical"></i></div>';
+    }).join("");
+}
+function rpDrag(e,i){rpFrom=i;e.dataTransfer.effectAllowed="move";e.dataTransfer.setData("text/plain","rp");}
+function rpDrop(e,j){e.preventDefault();e.stopPropagation();if(rpFrom==null||rpFrom===j)return;var it=ROTA_STOPS.splice(rpFrom,1)[0];ROTA_STOPS.splice(j,0,it);rpFrom=null;resequenciar();}
+function resequenciar(){
+  if(!ROTA_STOPS.length)return;
+  var cursor=new Date(ROTA_STOPS[0].agendado_em);
+  var updates=ROTA_STOPS.map(function(c){
+    var iso=cursor.toISOString();c.agendado_em=iso;
+    cursor=new Date(cursor.getTime()+((c.duracao_min||60)*60000));
+    return agendarChamado(c.id,iso,c.duracao_min||60);
+  });
+  document.getElementById("rotaInfo").textContent="Reordenando...";
+  Promise.all(updates).then(function(recs){
+    recs.forEach(function(rec){var k=CHAMADOS.findIndex(function(x){return x.id===rec.id;});if(k>=0)CHAMADOS[k]=rec;});
+    render();rota(ROTA_TEC);
+  }).catch(function(e){alert("Erro ao reordenar: "+(e.message||e));});
 }
 
 /* ===== INIT ===== */
