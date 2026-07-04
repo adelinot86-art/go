@@ -334,6 +334,21 @@ footer{text-align:center;color:var(--df);font-size:11px;margin-top:50px;line-hei
     <div id="tblPag" style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;color:var(--dm);font-size:12px"></div>
   </div>
 
+  <div class="sec"><span class="br"></span> Chamados finalizados <small>com USS · pesquisa · filtros com seleção múltipla</small></div>
+  <div class="crd">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <input id="finSearch" placeholder="🔍 Pesquisar..." style="padding:9px 13px;border-radius:10px;background:#0c0c12;border:1px solid var(--s1);color:var(--tx);font-family:var(--FB);font-size:13px;outline:none;width:240px;max-width:100%"/>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span class="pill" style="background:rgba(245,197,66,.12);border-color:rgba(245,197,66,.35);color:var(--gold)"><i class="fa-solid fa-coins"></i> Total USS:&nbsp;<b id="finUssTot" style="color:var(--cream)">0</b></span>
+        <button class="btn ghost" onclick="resetFinFilters()" style="font-size:12px"><i class="fa-solid fa-eraser"></i> Limpar filtros</button>
+        <button class="btn ghost" onclick="exportFinCSV()" style="font-size:12px"><i class="fa-solid fa-file-export"></i> Exportar CSV</button>
+      </div>
+    </div>
+    <div class="fg" id="finFilters" style="margin-bottom:14px"></div>
+    <div style="overflow-x:auto"><table id="finTbl" style="width:100%;border-collapse:collapse;font-size:12.5px"></table></div>
+    <div id="finPag" style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;color:var(--dm);font-size:12px"></div>
+  </div>
+
   <!-- MODAL · Cadastro de chamado (formulário preenchido por JS em abrirCad) -->
   <div class="modal-ov" id="mdCad" onclick="if(event.target===this)fecharCad()">
     <div class="modal">
@@ -488,7 +503,7 @@ function applyAll(){
   document.getElementById("kSc").textContent="("+fmt(base.length)+" chamados no filtro)";
   bKPI(base);                 // KPIs sempre sobre o filtro-base (estáveis, servem de "barra de filtro")
   var d=base.filter(kpiMatch); // gráficos/mapa/tabela respeitam também o KPI clicado
-  bCharts(d);bMap();bTable(d);
+  bCharts(d);bMap();bTable(d);bFin(d);
 }
 
 /* ===== KPIs \u00b7 grupos + metas + tend\u00eancia + clic\u00e1veis ===== */
@@ -777,8 +792,9 @@ function msHTML(id,label,opts,fmtFn){
 }
 function msToggle(id){var el=document.getElementById(id);var open=el.classList.contains("open");document.querySelectorAll(".ms.open").forEach(function(m){m.classList.remove("open");});if(!open)el.classList.add("open");}
 function msUpdateBtn(id){var el=document.getElementById(id);if(!el)return;var s=TBL_MS[id]||new Set();var c=s.size;var t=el.querySelector(".ms-txt");if(t)t.textContent=c?c+" selecionado"+(c>1?"s":""):"Todos";}
-function msChange(id,cb){var s=TBL_MS[id]||(TBL_MS[id]=new Set());if(cb.checked)s.add(cb.value);else s.delete(cb.value);msUpdateBtn(id);TBL_PAGE=0;applyTblFilters();}
-function msAll(id,val){var el=document.getElementById(id);var s=TBL_MS[id]||(TBL_MS[id]=new Set());el.querySelectorAll('input[type=checkbox]').forEach(function(cb){cb.checked=val;if(val)s.add(cb.value);else s.delete(cb.value);});msUpdateBtn(id);TBL_PAGE=0;applyTblFilters();}
+function msApply(id){if(id.indexOf("ff")===0){FIN_PAGE=0;applyFinFilters();}else{TBL_PAGE=0;applyTblFilters();}}
+function msChange(id,cb){var s=TBL_MS[id]||(TBL_MS[id]=new Set());if(cb.checked)s.add(cb.value);else s.delete(cb.value);msUpdateBtn(id);msApply(id);}
+function msAll(id,val){var el=document.getElementById(id);var s=TBL_MS[id]||(TBL_MS[id]=new Set());el.querySelectorAll('input[type=checkbox]').forEach(function(cb){cb.checked=val;if(val)s.add(cb.value);else s.delete(cb.value);});msUpdateBtn(id);msApply(id);}
 
 function buildTblFilters(){
   var fg=document.getElementById("tblFilters");if(!fg)return;
@@ -848,6 +864,74 @@ function exportCSV(){
   TBL_FILTERED.forEach(function(o){rows.push(TBL_COLS.map(function(c){return'"'+(g(o,c)||"").replace(/"/g,'""')+'"';}).join(";"));});
   var blob=new Blob(["\ufeff"+rows.join("\n")],{type:"text/csv;charset=utf-8"});
   var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="chamados_filtrados.csv";a.click();
+}
+
+/* ===================================================================
+   TABELA DE CHAMADOS FINALIZADOS (com USS + total) · mesmo modelo
+=================================================================== */
+var FIN_PAGE=0,FIN_PP=20,FIN_FILTERED=[],FIN_BASE=[];
+var FIN_COLS=["Nº Chamado","Data de Abertura","Escola","Município","Base de Atendimento","Técnico Responsável","Data Encerramento","Status","USS"];
+var FINF=[
+  {id:"fftec",lbl:"Técnico",col:"Técnico Responsável"},
+  {id:"ffbase",lbl:"Base",col:"Base de Atendimento"},
+  {id:"ffmun",lbl:"Município",col:"Município"},
+  {id:"ffst",lbl:"Status",col:"Status"}
+];
+function ussFmt(v){var n=parseFloat(v);return isNaN(n)?"—":n.toLocaleString("pt-BR",{maximumFractionDigits:2});}
+function buildFinFilters(){
+  var fg=document.getElementById("finFilters");if(!fg)return;var html="";
+  FINF.forEach(function(f){
+    var s=new Set();FIN_BASE.forEach(function(o){var v=g(o,f.col);if(v&&v.trim())s.add(v.trim());});
+    var opts=Array.from(s).sort(function(a,b){return a.localeCompare(b,"pt-BR");});
+    if(TBL_MS[f.id]){var keep=new Set();TBL_MS[f.id].forEach(function(v){if(s.has(v))keep.add(v);});TBL_MS[f.id]=keep;}else TBL_MS[f.id]=new Set();
+    html+=msHTML(f.id,f.lbl,opts,f.col==="Município"?function(v){return cap(v.toLowerCase());}:null);
+  });
+  fg.innerHTML=html;
+}
+function applyFinFilters(){
+  var rows=FIN_BASE.slice();
+  FINF.forEach(function(f){var sel=TBL_MS[f.id];if(sel&&sel.size)rows=rows.filter(function(o){return sel.has((g(o,f.col)||"").trim());});});
+  FIN_FILTERED=rows;renderFinTable();
+}
+function resetFinFilters(){FINF.forEach(function(f){TBL_MS[f.id]=new Set();});var s=document.getElementById("finSearch");if(s)s.value="";FIN_PAGE=0;buildFinFilters();applyFinFilters();}
+function bFin(d){FIN_BASE=d.filter(function(o){return sCls(g(o,"Status"))==="concluido";});FIN_PAGE=0;buildFinFilters();applyFinFilters();}
+function renderFinTable(){
+  var q=nm(document.getElementById("finSearch").value);
+  var rows=FIN_FILTERED;
+  if(q)rows=rows.filter(function(o){return FIN_COLS.some(function(c){return nm(g(o,c)).indexOf(q)!==-1;});});
+  var totUss=0;rows.forEach(function(o){var v=parseFloat(g(o,"USS"));if(!isNaN(v))totUss+=v;});
+  document.getElementById("finUssTot").textContent=ussFmt(totUss);
+  var tot=rows.length,pages=Math.max(1,Math.ceil(tot/FIN_PP));
+  if(FIN_PAGE>=pages)FIN_PAGE=pages-1;
+  var slice=rows.slice(FIN_PAGE*FIN_PP,(FIN_PAGE+1)*FIN_PP);
+  var html='<thead><tr>'+FIN_COLS.map(function(c){return'<th style="text-align:'+(c==="USS"?"right":"left")+';padding:9px 10px;color:#a8a596;border-bottom:1px solid rgba(255,255,255,.12);font-family:Sora;font-weight:600;font-size:11.5px;white-space:nowrap">'+c.replace(" Responsável","").replace("Base de Atendimento","Base")+'</th>';}).join("")+'</tr></thead><tbody>';
+  slice.forEach(function(o){
+    html+='<tr style="transition:.15s" onmouseover="this.style.background=\'rgba(245,197,66,.05)\'" onmouseout="this.style.background=\'transparent\'">';
+    html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05)">'+(g(o,"Nº Chamado")||"—")+'</td>';
+    html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05);white-space:nowrap">'+(g(o,"Data de Abertura")||"—")+'</td>';
+    html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(g(o,"Escola")||"—")+'</td>';
+    html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05)">'+cap((g(o,"Município")||"—").toLowerCase())+'</td>';
+    html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05)">'+(g(o,"Base de Atendimento")||"—").replace("BASE - ","")+'</td>';
+    html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05)">'+(g(o,"Técnico Responsável")||"—")+'</td>';
+    html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05);white-space:nowrap">'+(g(o,"Data Encerramento")||"—")+'</td>';
+    html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05)">'+sBadge(g(o,"Status"))+'</td>';
+    html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05);text-align:right;font-family:Sora;font-weight:700;color:var(--gold)">'+ussFmt(g(o,"USS"))+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody>';
+  document.getElementById("finTbl").innerHTML=html;
+  document.getElementById("finPag").innerHTML=
+    '<span>'+(tot?FIN_PAGE*FIN_PP+1:0)+'–'+Math.min((FIN_PAGE+1)*FIN_PP,tot)+' de '+tot+' finalizados</span>'
+    +'<span><button class="btn ghost" style="padding:5px 12px;font-size:12px" onclick="pgFin(-1)"><i class="fa-solid fa-chevron-left"></i></button> '
+    +'<span style="margin:0 8px">'+(FIN_PAGE+1)+'/'+pages+'</span>'
+    +'<button class="btn ghost" style="padding:5px 12px;font-size:12px" onclick="pgFin(1)"><i class="fa-solid fa-chevron-right"></i></button></span>';
+}
+function pgFin(dir){var pages=Math.max(1,Math.ceil(FIN_FILTERED.length/FIN_PP));FIN_PAGE=Math.max(0,Math.min(pages-1,FIN_PAGE+dir));renderFinTable();}
+function exportFinCSV(){
+  var rows=[FIN_COLS.join(";")];
+  FIN_FILTERED.forEach(function(o){rows.push(FIN_COLS.map(function(c){return'"'+(g(o,c)||"").replace(/"/g,'""')+'"';}).join(";"));});
+  var blob=new Blob(["﻿"+rows.join("\n")],{type:"text/csv;charset=utf-8"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="chamados_finalizados.csv";a.click();
 }
 
 /* ===================================================================
@@ -1007,6 +1091,7 @@ function carregarDados(forcar){
 window.addEventListener("load",function(){
   document.getElementById("genDate").textContent=new Date().toLocaleString("pt-BR");
   document.getElementById("tblSearch").addEventListener("input",function(){TBL_PAGE=0;renderTable();});
+  document.getElementById("finSearch").addEventListener("input",function(){FIN_PAGE=0;renderFinTable();});
   // Fecha qualquer multi-select aberto ao clicar fora
   document.addEventListener("click",function(e){if(!e.target.closest(".ms"))document.querySelectorAll(".ms.open").forEach(function(m){m.classList.remove("open");});});
   // ESC fecha o modal de cadastro
