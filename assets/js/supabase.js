@@ -214,6 +214,8 @@
       if (extras.nome) patch.encerrado_por = extras.nome;
       if (extras.relatorio) patch.relatorio_tecnico = extras.relatorio;
       if (extras.materiais) patch.materiais = extras.materiais;
+      if (extras.uss_total != null) patch.uss_total = extras.uss_total;
+      if (extras.uss_detalhe) patch.uss_detalhe = extras.uss_detalhe;
     }
     else if (acao === 'pendente') {
       // Não conclui: registra o que foi tratado e devolve o chamado à fila (não atribuído/sem horário).

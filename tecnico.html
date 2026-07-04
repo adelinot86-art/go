@@ -9,6 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/config.js"></script>
 <script src="assets/js/supabase.js"></script>
+<script src="assets/js/servicos.js"></script>
 <script src="assets/js/theme.js"></script>
 <style>
 :root{--bg:#0a0a0f;--card:#15151f;--card2:#1a1a24;--s1:rgba(255,255,255,.06);--s2:rgba(255,255,255,.12);
@@ -68,6 +69,21 @@ body{font-family:var(--FB);background:var(--bg);color:var(--tx);min-height:100vh
 .sheet .row{display:flex;gap:10px;margin-top:18px}
 .sheet .row .b{color:#0c0c12}
 .b.cancel{background:rgba(255,255,255,.06);color:var(--tx);border:1px solid var(--s2)}
+.usscalc{margin-top:14px;border-top:1px solid var(--s1);padding-top:12px}
+.uss-h{font-family:var(--FD);font-size:12.5px;font-weight:700;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.ativrow{border:1px solid var(--s1);border-radius:11px;padding:9px;margin-bottom:8px;background:rgba(0,0,0,.15)}
+.ativrow select,.ativrow input{width:100%;padding:9px;border-radius:9px;background:#0c0c12;border:1px solid var(--s1);color:var(--tx);font-family:var(--FB);font-size:13px;outline:none}
+.ativrow .r2{display:flex;gap:8px;align-items:center;margin-top:6px}
+.ativrow .r2 input{width:70px;text-align:center}
+.ativrow .ussun{flex:1;font-size:12px;color:var(--dm)}.ativrow .ussun b{color:var(--gold)}
+.ativrow .rm{width:36px;height:36px;flex-shrink:0;border-radius:9px;border:1px solid var(--s1);background:rgba(255,93,108,.12);color:var(--re);font-size:16px;cursor:pointer}
+.uss-add{width:100%;margin-top:2px;cursor:pointer;border:1px dashed var(--s2);background:rgba(255,255,255,.03);color:var(--tx);border-radius:11px;padding:10px;font-family:var(--FB);font-weight:600;font-size:13px}
+.uss-res{display:flex;gap:8px;margin-top:12px}
+.uss-box{flex:1;text-align:center;background:rgba(0,0,0,.2);border:1px solid var(--s1);border-radius:11px;padding:9px}
+.uss-box.tot{background:linear-gradient(135deg,rgba(245,197,66,.18),rgba(224,168,24,.05));border-color:rgba(245,197,66,.4)}
+.uss-l{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--df)}
+.uss-v{font-family:var(--FD);font-weight:800;font-size:20px;color:var(--cream);margin-top:3px}
+.uss-box.tot .uss-v{color:var(--gold)}
 #msg{font-size:12.5px;text-align:center;margin-top:10px;min-height:16px}
 #msg.bad{color:var(--re)}#msg.ok{color:var(--gn)}
 </style>
@@ -110,6 +126,20 @@ body{font-family:var(--FB);background:var(--bg);color:var(--tx);min-height:100vh
       <textarea id="encRel" placeholder="Descreva o que foi tratado..."></textarea>
       <label>Utilizou materiais?</label>
       <select id="encMat"><option value="">—</option><option value="Não">Não</option><option value="Sim">Sim</option></select>
+
+      <div class="usscalc">
+        <div class="uss-h"><i class="fa-solid fa-calculator"></i> Cálculo de serviço (USS · Item 07)</div>
+        <div id="encAtiv"></div>
+        <button type="button" class="uss-add" onclick="addAtiv()"><i class="fa-solid fa-plus"></i> Adicionar atividade</button>
+        <label style="margin-top:12px">Faixa de deslocamento</label>
+        <select id="encDesl" onchange="calcUss()"></select>
+        <div class="uss-res">
+          <div class="uss-box"><div class="uss-l">Soma USS</div><div class="uss-v" id="ussSoma">0</div></div>
+          <div class="uss-box"><div class="uss-l">Peso</div><div class="uss-v" id="ussPeso">1</div></div>
+          <div class="uss-box tot"><div class="uss-l">Total USS</div><div class="uss-v" id="ussTotal">0</div></div>
+        </div>
+      </div>
+
       <div class="row">
         <button class="b pend" id="btnPend" onclick="confirmarPend()"><i class="fa-solid fa-clock-rotate-left"></i> Deixar pendente</button>
         <button class="b enc" id="btnEnc" onclick="confirmarEnc()"><i class="fa-solid fa-check"></i> Encerrar</button>
@@ -212,13 +242,53 @@ function abrirEnc(id){encId=id;var c=CHAMADOS.find(function(x){return x.id===id;
   var m=document.getElementById("msg");m.className="";m.textContent="";
   var be=document.getElementById("btnEnc");be.disabled=false;be.innerHTML='<i class="fa-solid fa-check"></i> Encerrar';
   var bp=document.getElementById("btnPend");bp.disabled=false;bp.innerHTML='<i class="fa-solid fa-clock-rotate-left"></i> Deixar pendente';
+  USS_ATIV=[{b:"",l:"",qt:1}];initDeslSel();renderAtiv();calcUss();
   document.getElementById("ovEnc").classList.add("on");}
 function fecharEnc(){document.getElementById("ovEnc").classList.remove("on");encId=null;}
+
+/* ===== CÁLCULO DE SERVIÇO (USS · Item 07) ===== */
+var USS_ATIV=[];
+function escq(s){return(s||"").toString().replace(/"/g,"&quot;");}
+function nf(n){return (n==null||isNaN(n))?"0":(+n).toLocaleString("pt-BR",{maximumFractionDigits:2});}
+function blocosServ(){var s=[];(window.CALC_SERV||[]).forEach(function(x){if(s.indexOf(x.b)<0)s.push(x.b);});return s;}
+function linhasServ(b){return (window.CALC_SERV||[]).filter(function(x){return x.b===b;});}
+function findServ(b,l){return (window.CALC_SERV||[]).find(function(x){return x.b===b&&x.l===l;})||null;}
+function pesoDesl(){var v=document.getElementById("encDesl").value;if(!v)return 1;var d=(window.CALC_DESL||[]).find(function(x){return x[0]===v;});return d?d[1]:1;}
+function initDeslSel(){document.getElementById("encDesl").innerHTML='<option value="">Sem deslocamento (peso 1)</option>'+(window.CALC_DESL||[]).map(function(d){return'<option value="'+escq(d[0])+'">'+d[0]+' (peso '+nf(d[1])+')</option>';}).join("");}
+function addAtiv(){USS_ATIV.push({b:"",l:"",qt:1});renderAtiv();}
+function rmAtiv(i){USS_ATIV.splice(i,1);renderAtiv();calcUss();}
+function setBloco(i,v){USS_ATIV[i].b=v;USS_ATIV[i].l="";renderAtiv();calcUss();}
+function setLinha(i,v){USS_ATIV[i].l=v;renderAtiv();calcUss();}
+function setQt(i,v){USS_ATIV[i].qt=v;calcUss();}
+function renderAtiv(){
+  var box=document.getElementById("encAtiv");
+  box.innerHTML=USS_ATIV.map(function(a,i){
+    var bopts='<option value="">Bloco de serviço...</option>'+blocosServ().map(function(b){return'<option value="'+escq(b)+'"'+(b===a.b?" selected":"")+'>'+b+'</option>';}).join("");
+    var lopts=a.b?('<option value="">Linha de serviço...</option>'+linhasServ(a.b).map(function(x){return'<option value="'+escq(x.l)+'"'+(x.l===a.l?" selected":"")+'>'+x.l+'</option>';}).join("")):'<option value="">Selecione o bloco</option>';
+    var s=findServ(a.b,a.l),ussun=s?s.uss:0;
+    return '<div class="ativrow">'+
+      '<select onchange="setBloco('+i+',this.value)">'+bopts+'</select>'+
+      '<select style="margin-top:6px" onchange="setLinha('+i+',this.value)"'+(a.b?"":" disabled")+'>'+lopts+'</select>'+
+      '<div class="r2"><input type="number" min="1" step="1" value="'+(a.qt||1)+'" oninput="setQt('+i+',this.value)">'+
+        '<span class="ussun">USS un.: <b>'+nf(ussun)+'</b></span>'+
+        '<button type="button" class="rm" onclick="rmAtiv('+i+')">&times;</button></div>'+
+    '</div>';
+  }).join("")||'<div style="color:var(--df);font-size:12px;text-align:center;padding:6px">Nenhuma atividade.</div>';
+}
+function ussSoma(){var s=0;USS_ATIV.forEach(function(a){var srv=findServ(a.b,a.l),q=parseFloat(a.qt)||0;if(srv&&q>0)s+=srv.uss*q;});return s;}
+function calcUss(){var soma=ussSoma(),peso=pesoDesl();document.getElementById("ussSoma").textContent=nf(soma);document.getElementById("ussPeso").textContent=nf(peso);document.getElementById("ussTotal").textContent=nf(soma*peso);}
+function ussDetalhe(){
+  var ls=USS_ATIV.filter(function(a){return findServ(a.b,a.l)&&(parseFloat(a.qt)||0)>0;}).map(function(a){var s=findServ(a.b,a.l),q=parseFloat(a.qt)||0;return q+"× "+a.l+" ("+nf(s.uss*q)+" USS)";});
+  if(!ls.length)return "";
+  var desl=document.getElementById("encDesl").value,peso=pesoDesl();
+  return ls.join(" | ")+(desl?(" | Deslocamento: "+desl+" (×"+nf(peso)+")"):"")+" | Total: "+nf(ussSoma()*peso)+" USS";
+}
 function confirmarEnc(){
   var rel=document.getElementById("encRel").value.trim();
   var mat=document.getElementById("encMat").value;
   var btn=document.getElementById("btnEnc");btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Encerrando...';
-  setStatusTecnico(encId,"encerrado",{nome:TEC.nome,relatorio:rel,materiais:mat}).then(function(rec){
+  var totalUss=ussSoma()*pesoDesl(),det=ussDetalhe();
+  setStatusTecnico(encId,"encerrado",{nome:TEC.nome,relatorio:rel,materiais:mat,uss_total:det?totalUss:null,uss_detalhe:det||null}).then(function(rec){
     var i=CHAMADOS.findIndex(function(c){return c.id===encId;});if(i>=0)CHAMADOS[i]=rec;
     btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-check"></i> Encerrar';fecharEnc();setAba("ativos");
   }).catch(function(e){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-check"></i> Encerrar';var m=document.getElementById("msg");m.className="bad";m.textContent="Erro: "+(e.message||e);});
