@@ -147,8 +147,9 @@ td{padding:9px 8px;border-top:1px solid rgba(255,255,255,.05);vertical-align:mid
       <div class="sec"><i class="fa-solid fa-helmet-safety"></i> Cadastro de técnicos de campo</div>
       <p style="color:var(--dm);font-size:12px;margin-bottom:16px">O técnico entra no app do celular com o <b>e-mail do login</b> e vê só os chamados atribuídos a ele (pelo nome). Crie o login na aba <b>Usuários</b> com o mesmo e-mail.</p>
       <div class="grid2">
-        <div><label>Nome do técnico *</label><input id="tecNome" placeholder="Ex.: Matheus - Inovatech"></div>
-        <div><label>E-mail (login do técnico)</label><input id="tecEmail" type="email" placeholder="tecnico@exemplo.com"></div>
+        <div><label>Usuário técnico (login) *</label><select id="tecUser" onchange="selUsuarioTec()"></select></div>
+        <div><label>Nome do técnico *</label><input id="tecNome" placeholder="Nome de exibição"></div>
+        <div><label>E-mail (do usuário)</label><input id="tecEmail" type="email" readonly style="opacity:.65;cursor:not-allowed"></div>
         <div><label>Telefone</label><input id="tecTel" placeholder="(86) 90000-0000"></div>
         <div><label>Base de atendimento</label><input id="tecBase" list="dlTecBase" autocomplete="off"><datalist id="dlTecBase"></datalist></div>
         <div><label>Cor no Gantt</label><input id="tecCor" type="color" value="#4d9fff" style="height:42px;padding:4px"></div>
@@ -197,21 +198,18 @@ td{padding:9px 8px;border-top:1px solid rgba(255,255,255,.05);vertical-align:mid
       <div class="sec"><i class="fa-solid fa-user-gear"></i> Gerenciar usuários</div>
       <div id="usrAlert"></div>
 
+      <p style="color:var(--dm);font-size:12px;margin-bottom:12px">Crie aqui todos os acessos. Marque <b>Técnico</b> para quem usa o app de campo (ao logar, vai direto para a caixa de chamados dele). Depois vincule o técnico na aba <b>Técnicos</b>.</p>
       <div class="grid2" style="align-items:end;margin-bottom:10px">
-        <div>
-          <label>Novo usuário — e-mail</label>
-          <input id="novoEmail" type="email" placeholder="usuario@exemplo.com">
-        </div>
-        <div>
-          <label>Senha (mín. 6 caracteres)</label>
-          <input id="novaSenha" type="text" placeholder="senha inicial">
-        </div>
+        <div><label>Novo usuário — e-mail</label><input id="novoEmail" type="email" placeholder="usuario@exemplo.com"></div>
+        <div><label>Nome (exibição)</label><input id="novoNome" placeholder="Ex.: Matheus Silva"></div>
+        <div><label>Senha (mín. 6 caracteres)</label><input id="novaSenha" type="text" placeholder="senha inicial"></div>
+        <div><label>Tipo</label><select id="novoTipo"><option value="usuario">Usuário (sistema completo)</option><option value="tecnico">Técnico (app de campo)</option></select></div>
       </div>
       <button class="btn" id="btnCriarUsr" onclick="criarUsuario()"><i class="fa-solid fa-user-plus"></i> Criar usuário</button>
       <div class="msg" id="msgUsr"></div>
 
       <div style="overflow-x:auto;margin-top:20px">
-        <table id="tblUsr"><thead><tr><th>E-mail</th><th>Criado</th><th>Último acesso</th><th>Nova senha</th><th></th></tr></thead><tbody></tbody></table>
+        <table id="tblUsr"><thead><tr><th>E-mail</th><th>Nome</th><th>Tipo</th><th>Criado</th><th>Nova senha</th><th></th></tr></thead><tbody></tbody></table>
       </div>
     </div>
   </div>
@@ -290,21 +288,25 @@ function moverOpcao(id,dir){
 var usrCarregados=false;
 function carregarUsuarios(){
   var tb=document.querySelector("#tblUsr tbody");var alert=document.getElementById("usrAlert");
-  alert.innerHTML="";tb.innerHTML='<tr><td colspan="5" class="empty">Carregando...</td></tr>';
-  adminUsers("list").then(function(res){
-    var us=(res&&res.users)||[];
-    if(!us.length){tb.innerHTML='<tr><td colspan="5" class="empty">Nenhum usuário.</td></tr>';return;}
+  alert.innerHTML="";tb.innerHTML='<tr><td colspan="6" class="empty">Carregando...</td></tr>';
+  Promise.all([adminUsers("list"),fetchPerfis().catch(function(){return [];})]).then(function(r){
+    var us=(r[0]&&r[0].users)||[];var perfis=r[1]||[];
+    var pmap={};perfis.forEach(function(p){pmap[(p.email||"").toLowerCase()]=p;});
+    if(!us.length){tb.innerHTML='<tr><td colspan="6" class="empty">Nenhum usuário.</td></tr>';return;}
     tb.innerHTML=us.map(function(u){
       var criado=u.created_at?new Date(u.created_at).toLocaleDateString("pt-BR"):"—";
-      var acesso=u.last_sign_in_at?new Date(u.last_sign_in_at).toLocaleString("pt-BR"):"nunca";
+      var p=pmap[(u.email||"").toLowerCase()]||{};var tipo=p.tipo||"usuario";
       return '<tr>'+
-        '<td>'+(u.email||"—")+'</td><td>'+criado+'</td><td>'+acesso+'</td>'+
+        '<td>'+(u.email||"—")+'</td>'+
+        '<td>'+(p.nome||"—")+'</td>'+
+        '<td><select onchange="mudarTipo(\''+esc(u.email)+'\',this.value)" style="padding:5px 7px;font-size:12px;width:auto"><option value="usuario"'+(tipo==="usuario"?" selected":"")+'>Usuário</option><option value="tecnico"'+(tipo==="tecnico"?" selected":"")+'>Técnico</option></select></td>'+
+        '<td>'+criado+'</td>'+
         '<td><div class="urow-edit"><input type="text" id="pw_'+u.id+'" placeholder="nova senha"><button class="btn sm" onclick="salvarSenha(\''+u.id+'\')">Salvar</button></div></td>'+
         '<td><button class="btn sm danger" onclick="excluirUsuario(\''+u.id+'\',\''+esc(u.email)+'\')"><i class="fa-solid fa-trash"></i></button></td>'+
       '</tr>';
     }).join("");
   }).catch(function(e){
-    tb.innerHTML='<tr><td colspan="5" class="empty">—</td></tr>';
+    tb.innerHTML='<tr><td colspan="6" class="empty">—</td></tr>';
     var m=e.message||String(e);
     var dica = /restrito a administradores/i.test(m)
       ? "Seu usuário não está na tabela <b>admins</b>. Rode no SQL Editor: <code>insert into public.admins (email) values ('SEU-EMAIL');</code>"
@@ -316,15 +318,24 @@ function carregarUsuarios(){
 }
 function criarUsuario(){
   var email=document.getElementById("novoEmail").value.trim();
+  var nome=document.getElementById("novoNome").value.trim();
   var senha=document.getElementById("novaSenha").value;
+  var tipo=document.getElementById("novoTipo").value;
   var msg=document.getElementById("msgUsr");msg.className="msg";msg.textContent="";
   if(!email||!senha){msg.className="msg bad";msg.textContent="Informe e-mail e senha.";return;}
   var btn=document.getElementById("btnCriarUsr");btn.disabled=true;
   adminUsers("create",{email:email,password:senha}).then(function(){
-    msg.className="msg ok";msg.textContent="Usuário criado.";
-    document.getElementById("novoEmail").value="";document.getElementById("novaSenha").value="";
+    return setPerfil({email:email,tipo:tipo,nome:nome||null});
+  }).then(function(){
+    msg.className="msg ok";msg.textContent="Usuário criado"+(tipo==="tecnico"?" (técnico). Agora vincule-o na aba Técnicos.":".");
+    document.getElementById("novoEmail").value="";document.getElementById("novaSenha").value="";document.getElementById("novoNome").value="";
     btn.disabled=false;carregarUsuarios();
   }).catch(function(e){msg.className="msg bad";msg.textContent="Erro: "+(e.message||e);btn.disabled=false;});
+}
+function mudarTipo(email,tipo){
+  var msg=document.getElementById("msgUsr");msg.className="msg";
+  setPerfil({email:email,tipo:tipo}).then(function(){msg.className="msg ok";msg.textContent="Tipo de "+email+" alterado para "+tipo+".";})
+    .catch(function(e){msg.className="msg bad";msg.textContent="Erro: "+(e.message||e);});
 }
 function salvarSenha(id){
   var inp=document.getElementById("pw_"+id);var senha=(inp.value||"").trim();
@@ -342,7 +353,7 @@ function excluirUsuario(id,email){
 }
 
 /* ===== TÉCNICOS ===== */
-var TECNICOS=[],tecEditId=null,tecHab=[],tecRot=[],tecDias=[1,2,3,4,5],EXC=[],calRef=null;
+var TECNICOS=[],tecEditId=null,tecHab=[],tecRot=[],tecDias=[1,2,3,4,5],EXC=[],calRef=null,PERFIS_TEC=[];
 var WDIAS=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 function isoDe(d){return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
 
@@ -351,6 +362,10 @@ function carregarTecnicos(){
   dl.innerHTML=((OPC.base_atendimento||[]).map(function(o){return'<option value="'+esc(o.valor)+'"></option>';})).join("");
   document.getElementById("inpHab").innerHTML='<option value="">Selecione habilidade...</option>'+((OPC.habilidade||[]).map(function(o){return'<option value="'+esc(o.valor)+'">'+o.valor+'</option>';})).join("");
   document.getElementById("inpRot").innerHTML='<option value="">Selecione rota...</option>'+((OPC.rota||[]).map(function(o){return'<option value="'+esc(o.valor)+'">'+o.valor+'</option>';})).join("");
+  fetchPerfis().then(function(list){
+    PERFIS_TEC=(list||[]).filter(function(p){return p.tipo==="tecnico";});
+    document.getElementById("tecUser").innerHTML='<option value="">Selecione o usuário técnico...</option>'+PERFIS_TEC.map(function(p){return'<option value="'+esc(p.email)+'">'+esc(p.email)+(p.nome?" — "+esc(p.nome):"")+'</option>';}).join("");
+  }).catch(function(){});
   renderWdays();renderChips("hab");renderChips("rot");
   var tb=document.querySelector("#tblTec tbody");tb.innerHTML='<tr><td colspan="6" class="empty">Carregando...</td></tr>';
   fetchTecnicos().then(function(list){
@@ -388,9 +403,17 @@ function renderWdays(){
   document.getElementById("wdays").innerHTML=WDIAS.map(function(w,i){return'<span class="wd'+(tecDias.indexOf(i)>=0?" on":"")+'" onclick="toggleWd('+i+')">'+w+'</span>';}).join("");
 }
 function toggleWd(d){var i=tecDias.indexOf(d);if(i>=0)tecDias.splice(i,1);else tecDias.push(d);renderWdays();}
+function selUsuarioTec(){
+  var email=document.getElementById("tecUser").value;
+  document.getElementById("tecEmail").value=email;
+  var p=PERFIS_TEC.find(function(x){return (x.email||"").toLowerCase()===email.toLowerCase();});
+  var nomeEl=document.getElementById("tecNome");
+  if(email && !nomeEl.value.trim())nomeEl.value=(p&&p.nome)||email.split("@")[0];
+}
 
 function limparTec(){
   tecEditId=null;tecHab=[];tecRot=[];tecDias=[1,2,3,4,5];EXC=[];
+  document.getElementById("tecUser").value="";
   ["tecNome","tecEmail","tecTel","tecBase"].forEach(function(id){document.getElementById(id).value="";});
   document.getElementById("tecCor").value="#4d9fff";document.getElementById("tecAtivo").checked=true;
   document.getElementById("tecHi").value="08:00";document.getElementById("tecHf").value="18:00";
@@ -404,6 +427,9 @@ function editarTecnico(id){
   tecEditId=id;
   document.getElementById("tecNome").value=t.nome||"";
   document.getElementById("tecEmail").value=t.email||"";
+  var us=document.getElementById("tecUser");
+  if(t.email && !Array.prototype.some.call(us.options,function(o){return o.value===t.email;}))us.insertAdjacentHTML("beforeend",'<option value="'+esc(t.email)+'">'+esc(t.email)+' (atual)</option>');
+  us.value=t.email||"";
   document.getElementById("tecTel").value=t.telefone||"";
   document.getElementById("tecBase").value=t.base_atendimento||"";
   document.getElementById("tecCor").value=t.cor||"#4d9fff";
@@ -435,6 +461,7 @@ function salvarTecnico(){
   };
   var m=document.getElementById("msgTec");m.className="msg";
   if(!obj.nome){m.className="msg bad";m.textContent="Informe o nome do técnico.";return;}
+  if(!obj.email){m.className="msg bad";m.textContent="Selecione o usuário técnico (crie em Usuários com tipo Técnico).";return;}
   var btn=document.getElementById("btnSalvarTec");btn.disabled=true;
   var acao=tecEditId?updateTecnico(tecEditId,obj):addTecnico(obj);
   acao.then(function(){btn.disabled=false;m.className="msg ok";m.textContent=tecEditId?"Técnico atualizado.":"Técnico cadastrado.";limparTec();carregarTecnicos();})
@@ -475,7 +502,7 @@ function toggleDia(iso,wd){
 
 /* ===== INIT ===== */
 window.addEventListener("load",function(){
-  requireAuth().then(function(user){
+  requireAuthAdmin().then(function(user){
     if(!user)return;
     initCampos();
     carregarOpcoes();

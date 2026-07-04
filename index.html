@@ -698,7 +698,14 @@ function bMap(){
   }
   if(!MAP){
     MAP=L.map("map",{zoomControl:true,attributionControl:false,minZoom:5}).setView([-7.5,-43.0],6.2);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:13,subdomains:"abcd"}).addTo(MAP);
+    var bases={
+      "Detalhado":L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{maxZoom:19,subdomains:"abcd"}),
+      "Escuro":L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:19,subdomains:"abcd"}),
+      "Ruas":L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}),
+      "Satélite":L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19})
+    };
+    bases["Detalhado"].addTo(MAP);
+    L.control.layers(bases,null,{position:"topright"}).addTo(MAP);
     MAP.setMaxBounds([[-11.5,-46.5],[-2.0,-40.0]]);
   }
   if(ML)ML.remove();ML=L.layerGroup().addTo(MAP);
@@ -1002,7 +1009,7 @@ window.addEventListener("load",function(){
   // ESC fecha o modal de cadastro
   document.addEventListener("keydown",function(e){if(e.key==="Escape"&&document.getElementById("mdCad").classList.contains("on"))fecharCad();});
   // Exige login: sem sessão, redireciona para login.html; com sessão, carrega os dados
-  requireAuth().then(function(user){
+  requireAuthAdmin().then(function(user){
     if(!user)return;
     var ue=document.getElementById("userEmail");if(ue)ue.textContent=user.email||"conectado";
     fetchOpcoes().then(function(m){OPCOES=m||{};}).catch(function(e){console.warn("Opções não carregadas:",e);});

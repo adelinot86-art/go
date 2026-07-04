@@ -249,6 +249,21 @@
       });
   };
 
+  /* ===== Perfis (tipo de usuário) ===== */
+  global.fetchPerfis = function () {
+    return sb.from('perfis').select('*').order('email')
+      .then(function (res) { if (res.error) throw res.error; return res.data || []; });
+  };
+  global.fetchPerfil = function (email) {
+    return sb.from('perfis').select('*').ilike('email', email).limit(1)
+      .then(function (res) { if (res.error) throw res.error; return (res.data && res.data[0]) || null; });
+  };
+  global.setPerfil = function (obj) {
+    return sb.from('perfis').upsert(obj, { onConflict: 'email' }).select().single()
+      .then(function (res) { if (res.error) throw res.error; return res.data; });
+  };
+  global.paginaHome = function (perfil) { return (perfil && perfil.tipo === 'tecnico') ? 'tecnico.html' : 'index.html'; };
+
   /* ===== Autenticação ===== */
   global.requireAuth = function () {
     return sb.auth.getSession().then(function (res) {
@@ -259,5 +274,19 @@
   };
   global.logout = function () {
     sb.auth.signOut().then(function () { location.replace('login.html'); });
+  };
+  // Exige login E que o usuário NÃO seja técnico (telas admin). Técnico é mandado para a caixa dele.
+  global.requireAuthAdmin = function () {
+    return sb.auth.getSession().then(function (res) {
+      var session = res.data && res.data.session;
+      if (!session) { location.replace('login.html'); return null; }
+      var user = session.user;
+      return sb.from('perfis').select('tipo').ilike('email', user.email).limit(1)
+        .then(function (r) {
+          var p = r.data && r.data[0];
+          if (p && p.tipo === 'tecnico') { location.replace('tecnico.html'); return null; }
+          return user;
+        }).catch(function () { return user; });
+    });
   };
 })(window);

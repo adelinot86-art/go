@@ -58,8 +58,9 @@ footer{text-align:center;color:var(--df);font-size:10.5px;margin-top:18px;line-h
     <footer>Acesso restrito. Use as credenciais cadastradas no Supabase.</footer>
   </div>
 <script>
-// Se já houver sessão ativa, vai direto para o dashboard.
-sb.auth.getSession().then(function(r){ if(r.data && r.data.session) location.replace('index.html'); });
+// Se já houver sessão ativa, vai direto para a página certa (técnico → caixa dele).
+function irHome(email){ fetchPerfil(email).then(function(p){ location.replace(paginaHome(p)); }).catch(function(){ location.replace('index.html'); }); }
+sb.auth.getSession().then(function(r){ if(r.data && r.data.session) irHome(r.data.session.user.email); });
 
 function entrar(ev){
   ev.preventDefault();
@@ -76,7 +77,7 @@ function entrar(ev){
       return;
     }
     msg.className='msg ok'; msg.textContent='Bem-vindo! Redirecionando...';
-    location.replace('index.html');
+    irHome(email);
   });
   return false;
 }

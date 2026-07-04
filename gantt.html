@@ -382,7 +382,14 @@ function soltar(e,nome){
 function initMapa(){
   if(MAP||typeof L==="undefined")return;
   MAP=L.map("map",{zoomControl:true,attributionControl:false,minZoom:5}).setView([-7.2,-42.8],6.4);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:14,subdomains:"abcd"}).addTo(MAP);
+  var bases={
+    "Detalhado":L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{maxZoom:19,subdomains:"abcd"}),
+    "Escuro":L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:19,subdomains:"abcd"}),
+    "Ruas":L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}),
+    "Satélite":L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19})
+  };
+  bases["Detalhado"].addTo(MAP);
+  L.control.layers(bases,null,{position:"topright"}).addTo(MAP);
 }
 function renderMapa(){
   initMapa();if(!MAP)return;
@@ -538,7 +545,7 @@ function tickNow(){
   document.querySelectorAll(".pastshade").forEach(function(el){el.style.width=nx+"px";});
 }
 window.addEventListener("load",function(){
-  requireAuth().then(function(user){ if(!user)return; carregar(); });
+  requireAuthAdmin().then(function(user){ if(!user)return; carregar(); });
   setInterval(tickNow,60000);
 });
 </script>
