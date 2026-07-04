@@ -152,6 +152,7 @@ td{padding:9px 8px;border-top:1px solid rgba(255,255,255,.05);vertical-align:mid
         <div><label>Município</label><input id="cliMun" list="dlCliMun" autocomplete="off" placeholder="Município"><datalist id="dlCliMun"></datalist></div>
         <div><label>Código INEP</label><input id="cliInep" placeholder="Ex.: 22000000"></div>
         <div><label>Escola *</label><input id="cliEscola" placeholder="Nome da escola / identificação"></div>
+        <div><label>Nome do Anexo</label><input id="cliAnexo" placeholder="Nome do anexo"></div>
         <div><label>Tipo de Kit</label><input id="cliTipoKit" list="dlCliTipoKit" autocomplete="off"><datalist id="dlCliTipoKit"></datalist></div>
         <div><label>Tipo de Conexão</label><input id="cliConexao" list="dlCliConexao" autocomplete="off"><datalist id="dlCliConexao"></datalist></div>
         <div><label>Qtde de Turmas (Mediação Tecnológica)</label><input id="cliTurmas" type="number" min="0" step="1"></div>
@@ -577,7 +578,7 @@ function renderClientes(){
 }
 function limparCli(){
   cliEditId=null;
-  ["cliGre","cliMun","cliInep","cliEscola","cliTipoKit","cliConexao","cliTurmas","cliUapi"].forEach(function(id){document.getElementById(id).value="";});
+  ["cliGre","cliMun","cliInep","cliEscola","cliAnexo","cliTipoKit","cliConexao","cliTurmas","cliUapi"].forEach(function(id){document.getElementById(id).value="";});
   document.getElementById("cliJornada").value="";document.getElementById("cliQtdKits").value="";document.getElementById("cliKits").innerHTML="";
   document.getElementById("btnSalvarCli").innerHTML='<i class="fa-solid fa-floppy-disk"></i> Salvar cliente';var m=document.getElementById("msgCli");m.className="msg";m.textContent="";
 }
@@ -585,6 +586,7 @@ function editarCliente(id){
   var c=CLIENTES.find(function(x){return x.id===id;});if(!c)return;cliEditId=id;
   document.getElementById("cliGre").value=c.gre||"";document.getElementById("cliMun").value=c.municipio||"";
   document.getElementById("cliInep").value=c.codigo_inep||"";document.getElementById("cliEscola").value=c.escola||"";
+  document.getElementById("cliAnexo").value=c.nome_anexo||"";
   document.getElementById("cliTipoKit").value=c.tipo_kit||"";document.getElementById("cliConexao").value=c.tipo_conexao||"";
   document.getElementById("cliTurmas").value=(c.qtd_turmas_mt!=null?c.qtd_turmas_mt:"");
   document.getElementById("cliJornada").value=c.jornada_ampliada||"";document.getElementById("cliUapi").value=c.tipo_oferta_uapi||"";
@@ -600,6 +602,7 @@ function salvarCliente(){
     municipio:document.getElementById("cliMun").value.trim()||null,
     codigo_inep:document.getElementById("cliInep").value.trim()||null,
     escola:document.getElementById("cliEscola").value.trim(),
+    nome_anexo:document.getElementById("cliAnexo").value.trim()||null,
     tipo_kit:document.getElementById("cliTipoKit").value.trim()||null,
     tipo_conexao:document.getElementById("cliConexao").value.trim()||null,
     qtd_turmas_mt:isNaN(turmas)?null:turmas,
