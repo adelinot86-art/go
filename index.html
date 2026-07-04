@@ -581,6 +581,7 @@ function bKPI(d){
   var sla=totEnc?Math.round(dentroPrazo/totEnc*100):null;
   var bl=tot?Math.round(ativos/tot*100):0;
   var taxaConc=tot?Math.round(conc/tot*100):0;
+  var ussTot=0;d.forEach(function(o){var v=parseFloat(g(o,"USS"));if(!isNaN(v))ussTot+=v;});
 
   // tend\u00eancias (7d) por data de abertura (novos) e encerramento (conclu\u00eddos)
   var agora=new Date();var d7=7*86400000;
@@ -603,7 +604,8 @@ function bKPI(d){
       {ic:"fa-gauge-high",cor:"Cgn",val:sla!=null?sla+"%":"\u2014",raw:sla,lbl:"SLA no prazo",meta:{alvo:90,baixo:false,suf:"%"}},
       {ic:"fa-stopwatch",cor:"Camb",val:tmr!=null?(tmr.toLocaleString("pt-BR",{maximumFractionDigits:1})+" d"):"\u2014",raw:tmr,lbl:"TMR (tempo m\u00e9dio resolu\u00e7\u00e3o)",meta:tmr!=null?{alvo:5,baixo:true,suf:" d"}:null},
       {ic:"fa-square-poll-vertical",cor:"Cgn",val:taxaConc+"%",raw:taxaConc,lbl:"Taxa de conclus\u00e3o",meta:{alvo:70,baixo:false,suf:"%"}},
-      {ic:"fa-bars-staggered",cor:"Camb",val:bl+"%",raw:bl,lbl:"Backlog operacional",meta:{alvo:40,baixo:true,suf:"%"}}
+      {ic:"fa-bars-staggered",cor:"Camb",val:bl+"%",raw:bl,lbl:"Backlog operacional",meta:{alvo:40,baixo:true,suf:"%"}},
+      {ic:"fa-coins",cor:"Cgold",val:ussTot.toLocaleString("pt-BR",{maximumFractionDigits:1}),lbl:"USS acumulado"}
     ]},
     {nome:"Risco & Envelhecimento",ic:"fa-triangle-exclamation",cards:[
       {ic:"fa-clock-rotate-left",cor:"Cre",val:over96,lbl:"Abertos h\u00e1 +96h",filtro:{t:"over96",v:"1",l:"Abertos +96h"},raw:over96,meta:{alvo:0,baixo:true}},

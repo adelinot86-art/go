@@ -12,6 +12,8 @@
 <script src="assets/js/supabase.js"></script>
 <script src="assets/js/coords.js"></script>
 <script src="assets/js/theme.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="assets/js/reciboUss.js"></script>
 <style>
 :root{--bg:#0a0a0f;--card:#15151f;--card2:#1a1a24;--s1:rgba(255,255,255,.06);--s2:rgba(255,255,255,.12);
   --tx:#f5f3ea;--dm:#a8a596;--df:#6b6857;--gold:#f5c542;--gold2:#e0a818;--amber:#ffb020;--cream:#fff8e6;
@@ -426,7 +428,7 @@ function atualizarDetalhe(id){
     'Tipo: '+esc(c.tipo_atendimento||"—")+'<br>'+
     ((c.habilidade||c.rota)?('Habilidade: '+esc(c.habilidade||"—")+' · Rota: '+esc(c.rota||"—")+'<br>'):'')+
     'Status: <b>'+esc(c.status||"—")+'</b>'+(c.prioridade?' · '+esc(c.prioridade):'')+'<br>'+
-    (c.uss_total!=null?('USS total: <b style="color:var(--gold)">'+c.uss_total+'</b>'+(c.uss_detalhe?('<div style="font-size:11px;color:var(--df);margin:2px 0 4px;line-height:1.4">'+esc(c.uss_detalhe)+'</div>'):'')+'<br>'):'')+
+    (c.uss_total!=null?('USS total: <b style="color:var(--gold)">'+c.uss_total+'</b>'+(c.uss_detalhe?('<div style="font-size:11px;color:var(--df);margin:2px 0 4px;line-height:1.4">'+esc(c.uss_detalhe)+'</div>'):'')+'<div style="display:flex;gap:6px;margin:4px 0 6px"><button class="btn ghost sm" onclick="pdfUss('+c.id+')"><i class="fa-solid fa-file-pdf"></i> PDF</button><button class="btn ghost sm" onclick="imgUss('+c.id+')"><i class="fa-solid fa-image"></i> Imagem</button></div>'):'')+
     'Técnico: <b>'+esc(c.tecnico||"—")+'</b><br>'+
     'Aberto em: '+abertura+(c.data_prevista?' · previsto: '+esc(c.data_prevista):'')+'<br>'+
     (c.agendado_em?('Agendado: <b>'+fmtHora(c.agendado_em)+'</b> · '+(c.duracao_min||60)+' min<br>'):'Sem horário<br>')+
@@ -440,6 +442,8 @@ function atualizarDetalhe(id){
           (c.agendado_em?'<button class="btn ghost sm" onclick="removerHorario('+c.id+')"><i class="fa-solid fa-xmark"></i> Remover horário</button>':'')+
         '</div>');
 }
+function pdfUss(id){var c=CHAMADOS.find(function(x){return x.id===id;});if(c)reciboUssPDF(c);}
+function imgUss(id){var c=CHAMADOS.find(function(x){return x.id===id;});if(c)reciboUssIMG(c);}
 function infoTecnico(nome){
   var t=TECNICOS.find(function(x){return x.nome===nome;});if(!t)return;
   var doDia=CHAMADOS.filter(function(c){return c.tecnico===nome && diaLocalDe(c.agendado_em)===DIA;}).length;

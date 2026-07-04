@@ -36,7 +36,9 @@
     ['link_atividades',       'Link Gerador de atividades'],
     ['observacoes',           'Observações'],
     ['habilidade',            'Habilidade'],
-    ['rota',                  'Rota']
+    ['rota',                  'Rota'],
+    ['uss_total',             'USS'],
+    ['uss_detalhe',           'USS detalhe']
   ];
   var DATE_COLS = { data_abertura: 1, data_encerramento: 1, data_prevista: 1 };
 
@@ -82,6 +84,7 @@
     var dispParaDb = {}; COLS.forEach(function (c) { dispParaDb[c[1]] = c[0]; });
     var rec = {};
     COLS.forEach(function (c) {
+      if (c[0] === 'uss_total' || c[0] === 'uss_detalhe') return; // não gerenciados pelo cadastro: preserva
       var disp = c[1], db = c[0];
       var v = dadosDisplay[disp];
       // grava o valor (ou limpa o campo se veio vazio)

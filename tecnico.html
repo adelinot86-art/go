@@ -11,6 +11,8 @@
 <script src="assets/js/supabase.js"></script>
 <script src="assets/js/servicos.js"></script>
 <script src="assets/js/theme.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="assets/js/reciboUss.js"></script>
 <style>
 :root{--bg:#0a0a0f;--card:#15151f;--card2:#1a1a24;--s1:rgba(255,255,255,.06);--s2:rgba(255,255,255,.12);
   --tx:#f5f3ea;--dm:#a8a596;--df:#6b6857;--gold:#f5c542;--gold2:#e0a818;--amber:#ffb020;--cream:#fff8e6;
@@ -159,6 +161,7 @@ function corEstado(e){return e==="encerrado"?"var(--gn)":e==="execucao"?"var(--p
 function corPrio(p){var n=nrm(p);return /urgent|alta/.test(n)?"var(--re)":/medi/.test(n)?"var(--amber)":"var(--gn)";}
 function fmtHora(iso){if(!iso)return"";var d=new Date(iso);if(isNaN(d))return"";return("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);}
 function cap(s){return(s||"").toLowerCase().replace(/\b\w/g,function(c){return c.toUpperCase();});}
+function chamadoPorId(id){return CHAMADOS.find(function(x){return x.id===id;});}
 
 function setAba(a){ABA=a;document.getElementById("tabAtivos").classList.toggle("on",a==="ativos");document.getElementById("tabFeitos").classList.toggle("on",a==="feitos");render();}
 
@@ -213,7 +216,7 @@ function cardHTML(c){
   if(e==="pendente")acoes='<button class="b desl" onclick="acao('+c.id+',\'deslocamento\')"><i class="fa-solid fa-truck-fast"></i> Deslocamento</button>';
   else if(e==="deslocamento")acoes='<button class="b exec" onclick="acao('+c.id+',\'execucao\')"><i class="fa-solid fa-screwdriver-wrench"></i> Iniciar execução</button>';
   else if(e==="execucao")acoes='<button class="b enc" onclick="abrirEnc('+c.id+')"><i class="fa-solid fa-clipboard-check"></i> Finalizar</button>';
-  else acoes='<button class="b done" disabled><i class="fa-solid fa-check"></i> Encerrado</button>';
+  else {acoes='<button class="b done" disabled><i class="fa-solid fa-check"></i> Encerrado</button>';if(c.uss_total!=null)acoes+='<button class="b map" onclick="reciboUssPDF(chamadoPorId('+c.id+'))" title="PDF do cálculo"><i class="fa-solid fa-file-pdf"></i></button><button class="b map" onclick="reciboUssIMG(chamadoPorId('+c.id+'))" title="Imagem do cálculo"><i class="fa-solid fa-image"></i></button>';}
   return '<div class="card">'+
     '<div class="h"><div><div class="num">#'+(c.num_chamado||"s/nº")+'</div>'+
       '<div class="esc">'+(c.escola||c.municipio||"—")+'</div></div>'+
@@ -223,6 +226,7 @@ function cardHTML(c){
       (c.tipo_atendimento?'<div><i class="fa-solid fa-screwdriver-wrench"></i>'+c.tipo_atendimento+'</div>':"")+
       (hora?'<div><i class="fa-regular fa-clock"></i>Agendado: '+hora+(c.duracao_min?' · '+c.duracao_min+' min':"")+'</div>':"")+
       (c.prioridade?'<div><i class="fa-solid fa-flag"></i>Prioridade: <span class="pr" style="background:'+corPrio(c.prioridade)+'22;color:'+corPrio(c.prioridade)+'">'+c.prioridade+'</span></div>':"")+
+      (c.uss_total!=null?'<div><i class="fa-solid fa-coins"></i>USS: <b style="color:var(--gold)">'+c.uss_total+'</b></div>':"")+
     '</div>'+
     '<div class="acts-row">'+acoes+
       '<a class="b map" href="https://www.google.com/maps/dir/?api=1&destination='+mapsQ+'" target="_blank" rel="noopener" title="Rota no Maps"><i class="fa-solid fa-map-location-dot"></i></a>'+
