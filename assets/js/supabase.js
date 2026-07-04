@@ -214,7 +214,16 @@
       if (extras.nome) patch.encerrado_por = extras.nome;
       if (extras.relatorio) patch.relatorio_tecnico = extras.relatorio;
       if (extras.materiais) patch.materiais = extras.materiais;
-    } else { return Promise.reject(new Error('Ação inválida.')); }
+    }
+    else if (acao === 'pendente') {
+      // Não conclui: registra o que foi tratado e devolve o chamado à fila (não atribuído/sem horário).
+      patch.status = 'PENDENTE';
+      patch.agendado_em = null;   // sai da linha do tempo do Gantt
+      patch.tecnico = null;       // volta para "não atribuídos"
+      patch.relatorio_tecnico = (extras.nome ? ('[' + extras.nome + '] ') : '') + (extras.relatorio || '');
+      if (extras.materiais) patch.materiais = extras.materiais;
+    }
+    else { return Promise.reject(new Error('Ação inválida.')); }
     return sb.from('chamados').update(patch).eq('id', id).select().single()
       .then(function (res) { if (res.error) throw res.error; return res.data; });
   };
