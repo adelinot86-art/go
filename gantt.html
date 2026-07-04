@@ -428,7 +428,10 @@ function atualizarDetalhe(id){
     'Tipo: '+esc(c.tipo_atendimento||"—")+'<br>'+
     ((c.habilidade||c.rota)?('Habilidade: '+esc(c.habilidade||"—")+' · Rota: '+esc(c.rota||"—")+'<br>'):'')+
     'Status: <b>'+esc(c.status||"—")+'</b>'+(c.prioridade?' · '+esc(c.prioridade):'')+'<br>'+
-    (c.uss_total!=null?('USS total: <b style="color:var(--gold)">'+c.uss_total+'</b>'+(c.uss_detalhe?('<div style="font-size:11px;color:var(--df);margin:2px 0 4px;line-height:1.4">'+esc(c.uss_detalhe)+'</div>'):'')+'<div style="display:flex;gap:6px;margin:4px 0 6px"><button class="btn ghost sm" onclick="pdfUss('+c.id+')"><i class="fa-solid fa-file-pdf"></i> PDF</button><button class="btn ghost sm" onclick="imgUss('+c.id+')"><i class="fa-solid fa-image"></i> Imagem</button></div>'):'')+
+    ((estado(c.status)==="encerrado"||c.uss_total!=null)?(
+      (c.uss_total!=null?('USS total: <b style="color:var(--gold)">'+c.uss_total+'</b>'+(c.uss_detalhe?('<div style="font-size:11px;color:var(--df);margin:2px 0 4px;line-height:1.4">'+esc(c.uss_detalhe)+'</div>'):'')):'')+
+      '<div style="display:flex;gap:6px;margin:5px 0 6px"><button class="btn ghost sm" onclick="pdfUss('+c.id+')"><i class="fa-solid fa-file-pdf"></i> PDF do chamado</button><button class="btn ghost sm" onclick="imgUss('+c.id+')"><i class="fa-solid fa-image"></i> Imagem</button></div>'
+    ):'')+
     'Técnico: <b>'+esc(c.tecnico||"—")+'</b><br>'+
     'Aberto em: '+abertura+(c.data_prevista?' · previsto: '+esc(c.data_prevista):'')+'<br>'+
     (c.agendado_em?('Agendado: <b>'+fmtHora(c.agendado_em)+'</b> · '+(c.duracao_min||60)+' min<br>'):'Sem horário<br>')+
