@@ -143,6 +143,12 @@ body{font-family:var(--FB);background:var(--bg);color:var(--tx);min-height:100vh
         </div>
       </div>
 
+      <label style="margin-top:14px"><i class="fa-solid fa-video"></i> Vídeo (opcional)</label>
+      <input type="file" id="encVideo" accept="video/*" style="width:100%;padding:10px;border-radius:11px;background:#0c0c12;border:1px solid var(--s1);color:var(--tx);font-size:13px">
+      <label style="margin-top:10px"><i class="fa-solid fa-camera"></i> Fotos (até 10)</label>
+      <input type="file" id="encFotos" accept="image/*" multiple style="width:100%;padding:10px;border-radius:11px;background:#0c0c12;border:1px solid var(--s1);color:var(--tx);font-size:13px">
+      <div id="midiaMsg" style="font-size:11.5px;color:var(--dm);margin-top:6px"></div>
+
       <div class="row">
         <button class="b pend" id="btnPend" onclick="confirmarPend()"><i class="fa-solid fa-clock-rotate-left"></i> Deixar pendente</button>
         <button class="b enc" id="btnEnc" onclick="confirmarEnc()"><i class="fa-solid fa-check"></i> Encerrar</button>
@@ -250,6 +256,7 @@ function abrirEnc(id){encId=id;var c=CHAMADOS.find(function(x){return x.id===id;
   var be=document.getElementById("btnEnc");be.disabled=false;be.innerHTML='<i class="fa-solid fa-check"></i> Encerrar';
   var bp=document.getElementById("btnPend");bp.disabled=false;bp.innerHTML='<i class="fa-solid fa-clock-rotate-left"></i> Deixar pendente';
   USS_ATIV=[{b:"",l:"",qt:1}];initDeslSel();renderAtiv();calcUss();
+  document.getElementById("encVideo").value="";document.getElementById("encFotos").value="";document.getElementById("midiaMsg").textContent="";
   document.getElementById("ovEnc").classList.add("on");}
 function fecharEnc(){document.getElementById("ovEnc").classList.remove("on");encId=null;}
 
@@ -293,12 +300,22 @@ function ussDetalhe(){
 function confirmarEnc(){
   var rel=document.getElementById("encRel").value.trim();
   var mat=document.getElementById("encMat").value;
-  var btn=document.getElementById("btnEnc");btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Encerrando...';
+  var c=CHAMADOS.find(function(x){return x.id===encId;});
+  var video=document.getElementById("encVideo").files[0];
+  var fotos=Array.prototype.slice.call(document.getElementById("encFotos").files,0,10);
+  var mm=document.getElementById("midiaMsg");
+  var btn=document.getElementById("btnEnc");btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+  var ups=[];if(video)ups.push(uploadMidiaChamado(c,video,"video"));fotos.forEach(function(f){ups.push(uploadMidiaChamado(c,f,"foto"));});
+  var totalN=ups.length,done=0;if(totalN)mm.textContent="Enviando 0/"+totalN+" arquivo(s)...";
+  ups=ups.map(function(p){return p.then(function(r){done++;if(mm)mm.textContent="Enviando "+done+"/"+totalN+" arquivo(s)...";return r;});});
   var totalUss=ussSoma()*pesoDesl(),det=ussDetalhe();
-  setStatusTecnico(encId,"encerrado",{nome:TEC.nome,relatorio:rel,materiais:mat,uss_total:det?totalUss:null,uss_detalhe:det||null}).then(function(rec){
-    var i=CHAMADOS.findIndex(function(c){return c.id===encId;});if(i>=0)CHAMADOS[i]=rec;
-    btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-check"></i> Encerrar';fecharEnc();setAba("ativos");
-  }).catch(function(e){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-check"></i> Encerrar';var m=document.getElementById("msg");m.className="bad";m.textContent="Erro: "+(e.message||e);});
+  Promise.all(ups).then(function(){
+    return setStatusTecnico(encId,"encerrado",{nome:TEC.nome,relatorio:rel,materiais:mat,uss_total:det?totalUss:null,uss_detalhe:det||null});
+  }).then(function(rec){
+    var i=CHAMADOS.findIndex(function(x){return x.id===encId;});if(i>=0)CHAMADOS[i]=rec;
+    btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-check"></i> Encerrar';if(mm)mm.textContent="";
+    fecharEnc();setAba("ativos");
+  }).catch(function(e){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-check"></i> Encerrar';var m=document.getElementById("msg");m.className="bad";m.textContent="Erro ao enviar/encerrar: "+(e.message||e);});
 }
 function confirmarPend(){
   var rel=document.getElementById("encRel").value.trim();

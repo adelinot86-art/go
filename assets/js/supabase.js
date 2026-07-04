@@ -263,6 +263,28 @@
       });
   };
 
+  /* ===== Mídia dos chamados (Storage) ===== */
+  var BUCKET_MIDIA = 'chamados-midia';
+  // Sobe um arquivo e registra a referência. Retorna o path salvo.
+  global.uploadMidiaChamado = function (chamado, file, tipo) {
+    var ext = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '');
+    var safe = String(chamado.num_chamado || 'sn').replace(/[^a-zA-Z0-9_-]/g, '_');
+    var rnd = Math.random().toString(36).slice(2, 8);
+    var path = safe + '/' + tipo + '_' + Date.now() + '_' + rnd + (ext ? ('.' + ext) : '');
+    return sb.storage.from(BUCKET_MIDIA).upload(path, file, { upsert: false, contentType: file.type || undefined })
+      .then(function (res) {
+        if (res.error) throw res.error;
+        return sb.from('chamado_midia').insert({ chamado_id: chamado.id, num_chamado: chamado.num_chamado, tipo: tipo, path: path })
+          .then(function (r) { if (r.error) throw r.error; return path; });
+      });
+  };
+  global.fetchMidiaChamado = function (numChamado) {
+    return sb.from('chamado_midia').select('*').eq('num_chamado', numChamado).order('created_at')
+      .then(function (res) { if (res.error) throw res.error; return res.data || []; });
+  };
+  global.urlMidia = function (path) { return sb.storage.from(BUCKET_MIDIA).getPublicUrl(path).data.publicUrl; };
+  global.urlMidiaDownload = function (path) { return sb.storage.from(BUCKET_MIDIA).getPublicUrl(path, { download: true }).data.publicUrl; };
+
   /* ===== Clientes (escolas/entidades) ===== */
   global.fetchClientes = function () {
     return sb.from('clientes').select('*').order('escola')

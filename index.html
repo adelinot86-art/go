@@ -367,6 +367,21 @@ footer{text-align:center;color:var(--df);font-size:11px;margin-top:50px;line-hei
     </div>
   </div>
 
+  <!-- MODAL · Mídia do chamado (fotos + vídeo) -->
+  <div class="modal-ov" id="mdMidia" onclick="if(event.target===this)fecharMidia()">
+    <div class="modal" style="max-width:840px">
+      <div class="modal-h">
+        <h3><i class="fa-solid fa-photo-film"></i> Mídia do chamado <span id="midNum" style="color:var(--gold)"></span></h3>
+        <button class="modal-x" type="button" onclick="fecharMidia()" aria-label="Fechar"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-b" id="midBody">—</div>
+      <div class="modal-f">
+        <span style="font-size:11.5px;color:var(--df)">Clique numa foto (ou no botão) para baixar.</span>
+        <div><button type="button" class="btn ghost" onclick="fecharMidia()">Fechar</button></div>
+      </div>
+    </div>
+  </div>
+
   <footer>Dashboard de Chamados · Programa de Mediação Tecnológica — Canal Educação<br>
   Dados lidos ao vivo da planilha do Google Sheets. Página gerada em <span id="genDate"></span>.</footer>
 </div>
@@ -916,7 +931,7 @@ function renderFinTable(){
     html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05);white-space:nowrap">'+(g(o,"Data Encerramento")||"—")+'</td>';
     html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05)">'+sBadge(g(o,"Status"))+'</td>';
     html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05);text-align:right;font-family:Sora;font-weight:700;color:var(--gold)">'+ussFmt(g(o,"USS"))+'</td>';
-    html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05);text-align:center;white-space:nowrap"><button class="btn ghost" style="padding:4px 8px;font-size:11px" title="PDF do chamado" onclick="reciboFin(\''+esc(g(o,"Nº Chamado"))+'\',\'pdf\')"><i class="fa-solid fa-file-pdf"></i></button> <button class="btn ghost" style="padding:4px 8px;font-size:11px" title="Imagem do chamado" onclick="reciboFin(\''+esc(g(o,"Nº Chamado"))+'\',\'img\')"><i class="fa-solid fa-image"></i></button></td>';
+    html+='<td style="padding:9px 10px;border-top:1px solid rgba(255,255,255,.05);text-align:center;white-space:nowrap"><button class="btn ghost" style="padding:4px 8px;font-size:11px" title="PDF do chamado" onclick="reciboFin(\''+esc(g(o,"Nº Chamado"))+'\',\'pdf\')"><i class="fa-solid fa-file-pdf"></i></button> <button class="btn ghost" style="padding:4px 8px;font-size:11px" title="Imagem do chamado" onclick="reciboFin(\''+esc(g(o,"Nº Chamado"))+'\',\'img\')"><i class="fa-solid fa-image"></i></button> <button class="btn ghost" style="padding:4px 8px;font-size:11px" title="Fotos / Vídeo" onclick="abrirMidia(\''+esc(g(o,"Nº Chamado"))+'\')"><i class="fa-solid fa-photo-film"></i></button></td>';
     html+='</tr>';
   });
   html+='</tbody>';
@@ -949,6 +964,33 @@ function chamadoParaRecibo(o){
   };
 }
 function reciboFin(num,tipo){var o=FIN_FILTERED.find(function(x){return g(x,"Nº Chamado")===num;});if(!o)return;var c=chamadoParaRecibo(o);if(tipo==="pdf")reciboUssPDF(c);else reciboUssIMG(c);}
+function abrirMidia(num){
+  document.getElementById("midNum").textContent="#"+num;
+  var body=document.getElementById("midBody");
+  body.innerHTML='<div style="text-align:center;color:var(--dm);padding:26px"><i class="fa-solid fa-spinner fa-spin"></i> Carregando...</div>';
+  document.getElementById("mdMidia").classList.add("on");document.body.style.overflow="hidden";
+  fetchMidiaChamado(num).then(function(list){
+    if(!list.length){body.innerHTML='<div style="text-align:center;color:var(--df);padding:28px">Nenhuma mídia enviada para este chamado.</div>';return;}
+    var videos=list.filter(function(x){return x.tipo==="video";}),fotos=list.filter(function(x){return x.tipo==="foto";}),html="";
+    if(videos.length){
+      html+='<div style="font-family:var(--FD);font-weight:600;font-size:13px;margin-bottom:8px"><i class="fa-solid fa-video" style="color:var(--gold)"></i> Vídeo</div>';
+      videos.forEach(function(v){var u=urlMidia(v.path),d=urlMidiaDownload(v.path);
+        html+='<video src="'+u+'" controls preload="metadata" style="width:100%;max-height:340px;border-radius:10px;background:#000"></video>'+
+          '<div style="margin:8px 0 16px"><a class="btn" href="'+d+'"><i class="fa-solid fa-download"></i> Baixar vídeo</a></div>';
+      });
+    }
+    if(fotos.length){
+      html+='<div style="font-family:var(--FD);font-weight:600;font-size:13px;margin:6px 0 8px"><i class="fa-solid fa-camera" style="color:var(--gold)"></i> Fotos ('+fotos.length+')</div>';
+      html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px">';
+      fotos.forEach(function(f,i){var u=urlMidia(f.path),d=urlMidiaDownload(f.path);
+        html+='<a href="'+d+'" title="Baixar foto '+(i+1)+'" style="display:block;border:1px solid var(--s1);border-radius:10px;overflow:hidden;position:relative"><img src="'+u+'" loading="lazy" style="width:100%;height:110px;object-fit:cover;display:block"><span style="position:absolute;bottom:0;right:0;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:3px 7px"><i class="fa-solid fa-download"></i></span></a>';
+      });
+      html+='</div>';
+    }
+    body.innerHTML=html;
+  }).catch(function(e){body.innerHTML='<div style="color:var(--re);padding:18px">Erro ao carregar mídia: '+(e.message||e)+'</div>';});
+}
+function fecharMidia(){document.getElementById("mdMidia").classList.remove("on");document.body.style.overflow="";}
 
 /* ===================================================================
    CADASTRO DE CHAMADO · modal que grava no Supabase
