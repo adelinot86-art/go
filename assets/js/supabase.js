@@ -263,6 +263,24 @@
       });
   };
 
+  /* ===== Clientes (escolas/entidades) ===== */
+  global.fetchClientes = function () {
+    return sb.from('clientes').select('*').order('escola')
+      .then(function (res) { if (res.error) throw res.error; return res.data || []; });
+  };
+  global.addCliente = function (obj) {
+    return sb.from('clientes').insert(obj).select().single()
+      .then(function (res) { if (res.error) throw res.error; return res.data; });
+  };
+  global.updateCliente = function (id, obj) {
+    return sb.from('clientes').update(obj).eq('id', id).select().single()
+      .then(function (res) { if (res.error) throw res.error; return res.data; });
+  };
+  global.removeCliente = function (id) {
+    return sb.from('clientes').delete().eq('id', id)
+      .then(function (res) { if (res.error) throw res.error; return true; });
+  };
+
   /* ===== Perfis (tipo de usuário) ===== */
   global.fetchPerfis = function () {
     return sb.from('perfis').select('*').order('email')

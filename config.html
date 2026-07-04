@@ -116,6 +116,7 @@ td{padding:9px 8px;border-top:1px solid rgba(255,255,255,.05);vertical-align:mid
 
   <div class="tabs">
     <div class="tab active" data-pane="pOpc" onclick="setTab('pOpc')"><i class="fa-solid fa-list-ul"></i> Opções dos campos</div>
+    <div class="tab" data-pane="pCli" onclick="setTab('pCli')"><i class="fa-solid fa-school"></i> Clientes</div>
     <div class="tab" data-pane="pTec" onclick="setTab('pTec')"><i class="fa-solid fa-helmet-safety"></i> Técnicos</div>
     <div class="tab" data-pane="pUsr" onclick="setTab('pUsr')"><i class="fa-solid fa-users"></i> Usuários</div>
   </div>
@@ -138,6 +139,32 @@ td{padding:9px 8px;border-top:1px solid rgba(255,255,255,.05);vertical-align:mid
         <button class="btn" onclick="adicionarOpcao()"><i class="fa-solid fa-plus"></i> Adicionar</button>
       </div>
       <div class="msg" id="msgOpc"></div>
+    </div>
+  </div>
+
+  <!-- ===================== CLIENTES ===================== -->
+  <div class="pane" id="pCli">
+    <div class="crd">
+      <div class="sec"><i class="fa-solid fa-school"></i> Cadastro de clientes (escolas)</div>
+      <p style="color:var(--dm);font-size:12px;margin-bottom:16px">O cliente cadastrado aqui fica disponível para seleção no campo <b>Escola / Identificação</b> do chamado (preenchendo Município e INEP automaticamente).</p>
+      <div class="grid2">
+        <div><label>GRE</label><input id="cliGre" list="dlCliGre" autocomplete="off" placeholder="Gerência Regional"><datalist id="dlCliGre"></datalist></div>
+        <div><label>Município</label><input id="cliMun" list="dlCliMun" autocomplete="off" placeholder="Município"><datalist id="dlCliMun"></datalist></div>
+        <div><label>Código INEP</label><input id="cliInep" placeholder="Ex.: 22000000"></div>
+        <div><label>Escola *</label><input id="cliEscola" placeholder="Nome da escola / identificação"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+        <button class="btn" id="btnSalvarCli" onclick="salvarCliente()"><i class="fa-solid fa-floppy-disk"></i> Salvar cliente</button>
+        <button class="btn ghost" onclick="limparCli()"><i class="fa-solid fa-eraser"></i> Limpar / novo</button>
+      </div>
+      <div class="msg" id="msgCli"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:20px">
+        <input id="cliBusca" placeholder="🔍 Buscar escola/município..." oninput="renderClientes()" style="max-width:280px">
+        <span style="color:var(--df);font-size:12px" id="cliCount"></span>
+      </div>
+      <div style="overflow-x:auto;margin-top:10px">
+        <table id="tblCli"><thead><tr><th>Escola</th><th>Município</th><th>GRE</th><th>INEP</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
     </div>
   </div>
 
@@ -222,6 +249,7 @@ function setTab(id){
   document.querySelectorAll(".pane").forEach(function(p){p.classList.toggle("active",p.id===id);});
   if(id==="pUsr")carregarUsuarios();
   if(id==="pTec")carregarTecnicos();
+  if(id==="pCli")carregarClientes();
 }
 
 /* ===== OPÇÕES DOS CAMPOS ===== */
@@ -499,6 +527,45 @@ function toggleDia(iso,wd){
   p.then(function(){return fetchExcecoes(tecEditId);}).then(function(list){EXC=list||[];renderCal();})
     .catch(function(e){alert("Erro: "+(e.message||e));});
 }
+
+/* ===== CLIENTES ===== */
+var CLIENTES=[],cliEditId=null;
+function carregarClientes(){
+  document.getElementById("dlCliGre").innerHTML=((OPC.gre||[]).map(function(o){return'<option value="'+esc(o.valor)+'"></option>';})).join("");
+  document.getElementById("dlCliMun").innerHTML=((OPC.municipio||[]).map(function(o){return'<option value="'+esc(o.valor)+'"></option>';})).join("");
+  var tb=document.querySelector("#tblCli tbody");tb.innerHTML='<tr><td colspan="5" class="empty">Carregando...</td></tr>';
+  fetchClientes().then(function(list){CLIENTES=list||[];renderClientes();})
+    .catch(function(e){tb.innerHTML='<tr><td colspan="5" class="empty">Erro: '+(e.message||e)+'</td></tr>';});
+}
+function renderClientes(){
+  var q=(document.getElementById("cliBusca").value||"").toLowerCase();
+  var list=CLIENTES.filter(function(c){return !q||((c.escola||"")+" "+(c.municipio||"")+" "+(c.codigo_inep||"")).toLowerCase().indexOf(q)>=0;});
+  document.getElementById("cliCount").textContent=list.length+" cliente(s)";
+  var tb=document.querySelector("#tblCli tbody");
+  if(!list.length){tb.innerHTML='<tr><td colspan="5" class="empty">Nenhum cliente.</td></tr>';return;}
+  tb.innerHTML=list.map(function(c){
+    return '<tr>'+
+      '<td>'+(c.escola||"—")+'</td>'+
+      '<td>'+(c.municipio||"—")+'</td>'+
+      '<td>'+(c.gre||"—")+'</td>'+
+      '<td>'+(c.codigo_inep||"—")+'</td>'+
+      '<td style="white-space:nowrap"><button class="btn sm ghost" onclick="editarCliente('+c.id+')"><i class="fa-solid fa-pen"></i></button> '+
+      '<button class="btn sm danger" onclick="excluirCliente('+c.id+',\''+esc(c.escola)+'\')"><i class="fa-solid fa-trash"></i></button></td>'+
+    '</tr>';
+  }).join("");
+}
+function limparCli(){cliEditId=null;["cliGre","cliMun","cliInep","cliEscola"].forEach(function(id){document.getElementById(id).value="";});document.getElementById("btnSalvarCli").innerHTML='<i class="fa-solid fa-floppy-disk"></i> Salvar cliente';var m=document.getElementById("msgCli");m.className="msg";m.textContent="";}
+function editarCliente(id){var c=CLIENTES.find(function(x){return x.id===id;});if(!c)return;cliEditId=id;document.getElementById("cliGre").value=c.gre||"";document.getElementById("cliMun").value=c.municipio||"";document.getElementById("cliInep").value=c.codigo_inep||"";document.getElementById("cliEscola").value=c.escola||"";document.getElementById("btnSalvarCli").innerHTML='<i class="fa-solid fa-floppy-disk"></i> Salvar alterações';document.getElementById("cliEscola").scrollIntoView({behavior:"smooth",block:"center"});}
+function salvarCliente(){
+  var obj={gre:document.getElementById("cliGre").value.trim()||null,municipio:document.getElementById("cliMun").value.trim()||null,codigo_inep:document.getElementById("cliInep").value.trim()||null,escola:document.getElementById("cliEscola").value.trim()};
+  var m=document.getElementById("msgCli");m.className="msg";
+  if(!obj.escola){m.className="msg bad";m.textContent="Informe o nome da escola.";return;}
+  var btn=document.getElementById("btnSalvarCli");btn.disabled=true;
+  var acao=cliEditId?updateCliente(cliEditId,obj):addCliente(obj);
+  acao.then(function(){btn.disabled=false;m.className="msg ok";m.textContent=cliEditId?"Cliente atualizado.":"Cliente cadastrado.";limparCli();carregarClientes();})
+    .catch(function(e){btn.disabled=false;m.className="msg bad";m.textContent="Erro: "+(e.message||e);});
+}
+function excluirCliente(id,nome){if(!confirm("Excluir o cliente "+nome+"?"))return;removeCliente(id).then(function(){if(cliEditId===id)limparCli();carregarClientes();}).catch(function(e){alert("Erro: "+(e.message||e));});}
 
 /* ===== INIT ===== */
 window.addEventListener("load",function(){

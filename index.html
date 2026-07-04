@@ -993,18 +993,27 @@ var CAMPO_DE={
 };
 var OPCOES={};          // preenchido no init via fetchOpcoes()
 var TECNICOS_NOMES=[];  // nomes dos técnicos ativos (tabela tecnicos)
+var CLIENTES=[];        // clientes (escolas) cadastrados
 var CAD_EDIT_NUM=null;  // se != null, o modal está editando este Nº Chamado
 function cadId(col){return "cad_"+nm(col).replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");}
 function distintosCol(col){var s=new Set();CH.forEach(function(o){var v=g(o,col);if(v&&v.trim()&&v!=="-"&&v!=="—")s.add(v.trim());});return Array.from(s).sort(function(a,b){return a.localeCompare(b,"pt-BR");});}
 // Opções de um campo: técnico vem da tabela de técnicos; demais, das Configurações; senão, valores distintos dos chamados.
 function opcoesDoCampo(col){
   if(col==="Técnico Responsável"&&TECNICOS_NOMES.length)return TECNICOS_NOMES;
+  if(col==="Escola | Identificação Interna - NTI"&&CLIENTES.length)return Array.from(new Set(CLIENTES.map(function(c){return c.escola;})));
   var campo=CAMPO_DE[col];
   if(campo&&OPCOES[campo]&&OPCOES[campo].length)return OPCOES[campo].map(function(o){return o.valor;});
   return distintosCol(col);
 }
 // dd/mm/aaaa -> aaaa-mm-dd (para preencher input date ao editar)
 function brParaISO(v){v=(v||"").toString().trim();var m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return m[3]+"-"+("0"+m[2]).slice(-2)+"-"+("0"+m[1]).slice(-2);if(/^\d{4}-\d{2}-\d{2}/.test(v))return v.slice(0,10);return "";}
+// Ao escolher um cliente no campo Escola, preenche Município e Nº INEP.
+function preencherPorCliente(escolaVal){
+  var c=CLIENTES.find(function(x){return (x.escola||"")===escolaVal;});
+  if(!c)return;
+  var mu=document.getElementById(cadId("Município"));if(mu&&c.municipio)mu.value=c.municipio;
+  var ie=document.getElementById(cadId("Nº INEP"));if(ie&&c.codigo_inep)ie.value=c.codigo_inep;
+}
 function abrirCad(chamado){
   var grupos=["Identificação","Local","Atendimento","Complemento"];
   var body=grupos.map(function(gn){
@@ -1022,6 +1031,8 @@ function abrirCad(chamado){
     return '<div class="cadGrp"><div class="cgh"><i class="fa-solid fa-angle-right"></i>'+gn+'</div><div class="cadGrid">'+campos+'</div></div>';
   }).join("");
   document.getElementById("formCad").innerHTML=body;
+  var escEl=document.getElementById(cadId("Escola | Identificação Interna - NTI"));
+  if(escEl)escEl.addEventListener("change",function(){preencherPorCliente(this.value);});
 
   var titulo=document.getElementById("cadTitulo"),save=document.getElementById("cadSave");
   if(chamado){
@@ -1118,6 +1129,7 @@ window.addEventListener("load",function(){
     var ue=document.getElementById("userEmail");if(ue)ue.textContent=user.email||"conectado";
     fetchOpcoes().then(function(m){OPCOES=m||{};}).catch(function(e){console.warn("Opções não carregadas:",e);});
     fetchTecnicos().then(function(list){TECNICOS_NOMES=(list||[]).filter(function(t){return t.ativo!==false;}).map(function(t){return t.nome;});}).catch(function(e){console.warn("Técnicos não carregados:",e);});
+    fetchClientes().then(function(list){CLIENTES=list||[];}).catch(function(e){console.warn("Clientes não carregados:",e);});
     carregarDados(false);
   });
 });
