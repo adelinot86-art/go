@@ -152,7 +152,14 @@ td{padding:9px 8px;border-top:1px solid rgba(255,255,255,.05);vertical-align:mid
         <div><label>Município</label><input id="cliMun" list="dlCliMun" autocomplete="off" placeholder="Município"><datalist id="dlCliMun"></datalist></div>
         <div><label>Código INEP</label><input id="cliInep" placeholder="Ex.: 22000000"></div>
         <div><label>Escola *</label><input id="cliEscola" placeholder="Nome da escola / identificação"></div>
+        <div><label>Tipo de Kit</label><input id="cliTipoKit" list="dlCliTipoKit" autocomplete="off"><datalist id="dlCliTipoKit"></datalist></div>
+        <div><label>Tipo de Conexão</label><input id="cliConexao" list="dlCliConexao" autocomplete="off"><datalist id="dlCliConexao"></datalist></div>
+        <div><label>Qtde de Turmas (Mediação Tecnológica)</label><input id="cliTurmas" type="number" min="0" step="1"></div>
+        <div><label>Oferta Jornada Ampliada?</label><select id="cliJornada"><option value="">—</option><option value="Sim">Sim</option><option value="Não">Não</option></select></div>
+        <div><label>Tipo de Oferta UAPI</label><input id="cliUapi" list="dlCliUapi" autocomplete="off"><datalist id="dlCliUapi"></datalist></div>
+        <div><label>Quantidade de Kits</label><select id="cliQtdKits" onchange="renderKitIds()"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select></div>
       </div>
+      <div id="cliKits" style="margin-top:8px"></div>
       <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
         <button class="btn" id="btnSalvarCli" onclick="salvarCliente()"><i class="fa-solid fa-floppy-disk"></i> Salvar cliente</button>
         <button class="btn ghost" onclick="limparCli()"><i class="fa-solid fa-eraser"></i> Limpar / novo</button>
@@ -262,7 +269,11 @@ var CAMPOS=[
   {campo:"habilidade",lbl:"Habilidades"},
   {campo:"rota",lbl:"Rotas atendidas"},
   {campo:"municipio",lbl:"Município"},
-  {campo:"materiais",lbl:"Materiais"}
+  {campo:"materiais",lbl:"Materiais"},
+  {campo:"gre",lbl:"GRE"},
+  {campo:"tipo_kit",lbl:"Tipo de Kit"},
+  {campo:"tipo_conexao",lbl:"Tipo de Conexão"},
+  {campo:"tipo_oferta_uapi",lbl:"Tipo de Oferta UAPI"}
 ];
 var OPC={};
 
@@ -530,12 +541,22 @@ function toggleDia(iso,wd){
 
 /* ===== CLIENTES ===== */
 var CLIENTES=[],cliEditId=null;
+function dlOpc(id,campo){document.getElementById(id).innerHTML=((OPC[campo]||[]).map(function(o){return'<option value="'+esc(o.valor)+'"></option>';})).join("");}
 function carregarClientes(){
-  document.getElementById("dlCliGre").innerHTML=((OPC.gre||[]).map(function(o){return'<option value="'+esc(o.valor)+'"></option>';})).join("");
-  document.getElementById("dlCliMun").innerHTML=((OPC.municipio||[]).map(function(o){return'<option value="'+esc(o.valor)+'"></option>';})).join("");
+  dlOpc("dlCliGre","gre");dlOpc("dlCliMun","municipio");dlOpc("dlCliTipoKit","tipo_kit");dlOpc("dlCliConexao","tipo_conexao");dlOpc("dlCliUapi","tipo_oferta_uapi");
   var tb=document.querySelector("#tblCli tbody");tb.innerHTML='<tr><td colspan="5" class="empty">Carregando...</td></tr>';
   fetchClientes().then(function(list){CLIENTES=list||[];renderClientes();})
     .catch(function(e){tb.innerHTML='<tr><td colspan="5" class="empty">Erro: '+(e.message||e)+'</td></tr>';});
+}
+function renderKitIds(preset){
+  var n=parseInt(document.getElementById("cliQtdKits").value,10)||0;
+  var cur=preset;
+  if(!cur){cur=[];for(var i=0;i<10;i++){var el=document.getElementById("cliKit_"+i);if(el)cur[i]=el.value;}}
+  var box=document.getElementById("cliKits");
+  if(!n){box.innerHTML="";return;}
+  var inner="";
+  for(var k=0;k<n;k++)inner+='<div style="display:inline-block;margin:0 8px 8px 0"><label style="font-size:10px;color:var(--df);text-transform:uppercase;letter-spacing:.5px">ID Kit '+(k+1)+'</label><br><input id="cliKit_'+k+'" value="'+esc((cur&&cur[k])||"")+'" placeholder="Nº do kit" style="width:150px"></div>';
+  box.innerHTML='<label>Números de identificação dos kits</label><div>'+inner+'</div>';
 }
 function renderClientes(){
   var q=(document.getElementById("cliBusca").value||"").toLowerCase();
@@ -554,10 +575,39 @@ function renderClientes(){
     '</tr>';
   }).join("");
 }
-function limparCli(){cliEditId=null;["cliGre","cliMun","cliInep","cliEscola"].forEach(function(id){document.getElementById(id).value="";});document.getElementById("btnSalvarCli").innerHTML='<i class="fa-solid fa-floppy-disk"></i> Salvar cliente';var m=document.getElementById("msgCli");m.className="msg";m.textContent="";}
-function editarCliente(id){var c=CLIENTES.find(function(x){return x.id===id;});if(!c)return;cliEditId=id;document.getElementById("cliGre").value=c.gre||"";document.getElementById("cliMun").value=c.municipio||"";document.getElementById("cliInep").value=c.codigo_inep||"";document.getElementById("cliEscola").value=c.escola||"";document.getElementById("btnSalvarCli").innerHTML='<i class="fa-solid fa-floppy-disk"></i> Salvar alterações';document.getElementById("cliEscola").scrollIntoView({behavior:"smooth",block:"center"});}
+function limparCli(){
+  cliEditId=null;
+  ["cliGre","cliMun","cliInep","cliEscola","cliTipoKit","cliConexao","cliTurmas","cliUapi"].forEach(function(id){document.getElementById(id).value="";});
+  document.getElementById("cliJornada").value="";document.getElementById("cliQtdKits").value="";document.getElementById("cliKits").innerHTML="";
+  document.getElementById("btnSalvarCli").innerHTML='<i class="fa-solid fa-floppy-disk"></i> Salvar cliente';var m=document.getElementById("msgCli");m.className="msg";m.textContent="";
+}
+function editarCliente(id){
+  var c=CLIENTES.find(function(x){return x.id===id;});if(!c)return;cliEditId=id;
+  document.getElementById("cliGre").value=c.gre||"";document.getElementById("cliMun").value=c.municipio||"";
+  document.getElementById("cliInep").value=c.codigo_inep||"";document.getElementById("cliEscola").value=c.escola||"";
+  document.getElementById("cliTipoKit").value=c.tipo_kit||"";document.getElementById("cliConexao").value=c.tipo_conexao||"";
+  document.getElementById("cliTurmas").value=(c.qtd_turmas_mt!=null?c.qtd_turmas_mt:"");
+  document.getElementById("cliJornada").value=c.jornada_ampliada||"";document.getElementById("cliUapi").value=c.tipo_oferta_uapi||"";
+  document.getElementById("cliQtdKits").value=(c.qtd_kits!=null?c.qtd_kits:"");renderKitIds(c.kits_ids||[]);
+  document.getElementById("btnSalvarCli").innerHTML='<i class="fa-solid fa-floppy-disk"></i> Salvar alterações';document.getElementById("cliEscola").scrollIntoView({behavior:"smooth",block:"center"});
+}
 function salvarCliente(){
-  var obj={gre:document.getElementById("cliGre").value.trim()||null,municipio:document.getElementById("cliMun").value.trim()||null,codigo_inep:document.getElementById("cliInep").value.trim()||null,escola:document.getElementById("cliEscola").value.trim()};
+  var n=parseInt(document.getElementById("cliQtdKits").value,10)||0,kits=[];
+  for(var i=0;i<n;i++){var el=document.getElementById("cliKit_"+i);if(el&&el.value.trim())kits.push(el.value.trim());}
+  var turmas=parseInt(document.getElementById("cliTurmas").value,10);
+  var obj={
+    gre:document.getElementById("cliGre").value.trim()||null,
+    municipio:document.getElementById("cliMun").value.trim()||null,
+    codigo_inep:document.getElementById("cliInep").value.trim()||null,
+    escola:document.getElementById("cliEscola").value.trim(),
+    tipo_kit:document.getElementById("cliTipoKit").value.trim()||null,
+    tipo_conexao:document.getElementById("cliConexao").value.trim()||null,
+    qtd_turmas_mt:isNaN(turmas)?null:turmas,
+    jornada_ampliada:document.getElementById("cliJornada").value||null,
+    tipo_oferta_uapi:document.getElementById("cliUapi").value.trim()||null,
+    qtd_kits:n||null,
+    kits_ids:kits
+  };
   var m=document.getElementById("msgCli");m.className="msg";
   if(!obj.escola){m.className="msg bad";m.textContent="Informe o nome da escola.";return;}
   var btn=document.getElementById("btnSalvarCli");btn.disabled=true;
