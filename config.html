@@ -9,6 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/config.js"></script>
 <script src="assets/js/supabase.js"></script>
+<script src="assets/js/theme.js"></script>
 <style>
 :root{--bg:#0a0a0f;--card:#15151f;--card2:#1a1a24;--s1:rgba(255,255,255,.06);--s2:rgba(255,255,255,.12);
   --tx:#f5f3ea;--dm:#a8a596;--df:#6b6857;--gold:#f5c542;--gold2:#e0a818;--amber:#ffb020;--cream:#fff8e6;
@@ -154,13 +155,13 @@ td{padding:9px 8px;border-top:1px solid rgba(255,255,255,.05);vertical-align:mid
         <div style="display:flex;align-items:center;gap:8px;margin-top:22px"><input type="checkbox" id="tecAtivo" checked style="width:auto"><label style="margin:0">Ativo</label></div>
       </div>
 
-      <div style="margin-top:18px"><label>Habilidades</label>
+      <div style="margin-top:18px"><label>Habilidades <span style="color:var(--df);text-transform:none;letter-spacing:0">— cadastre as opções na aba "Opções dos campos"</span></label>
         <div class="chipbox" id="boxHab"></div>
-        <div class="chipadd"><input id="inpHab" placeholder="Ex.: Instalação, Manutenção..." onkeydown="if(event.key==='Enter'){event.preventDefault();addChip('hab');}"><button type="button" class="btn ghost sm" onclick="addChip('hab')"><i class="fa-solid fa-plus"></i></button></div>
+        <div class="chipadd"><select id="inpHab"></select><button type="button" class="btn ghost sm" onclick="addChip('hab')"><i class="fa-solid fa-plus"></i> Adicionar</button></div>
       </div>
       <div style="margin-top:14px"><label>Rotas atendidas</label>
         <div class="chipbox" id="boxRot"></div>
-        <div class="chipadd"><input id="inpRot" placeholder="Ex.: Teresina - Interior" onkeydown="if(event.key==='Enter'){event.preventDefault();addChip('rot');}"><button type="button" class="btn ghost sm" onclick="addChip('rot')"><i class="fa-solid fa-plus"></i></button></div>
+        <div class="chipadd"><select id="inpRot"></select><button type="button" class="btn ghost sm" onclick="addChip('rot')"><i class="fa-solid fa-plus"></i> Adicionar</button></div>
       </div>
       <div style="margin-top:16px"><label>Expediente (horário de trabalho)</label>
         <div class="grid2" style="margin-top:0">
@@ -232,7 +233,8 @@ var CAMPOS=[
   {campo:"tipo_atendimento",lbl:"Tipo de Atendimento"},
   {campo:"status",lbl:"Status"},
   {campo:"prioridade",lbl:"Prioridade"},
-  {campo:"tecnico",lbl:"Técnico Responsável"},
+  {campo:"habilidade",lbl:"Habilidades"},
+  {campo:"rota",lbl:"Rotas atendidas"},
   {campo:"municipio",lbl:"Município"},
   {campo:"materiais",lbl:"Materiais"}
 ];
@@ -347,6 +349,8 @@ function isoDe(d){return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-
 function carregarTecnicos(){
   var dl=document.getElementById("dlTecBase");
   dl.innerHTML=((OPC.base_atendimento||[]).map(function(o){return'<option value="'+esc(o.valor)+'"></option>';})).join("");
+  document.getElementById("inpHab").innerHTML='<option value="">Selecione habilidade...</option>'+((OPC.habilidade||[]).map(function(o){return'<option value="'+esc(o.valor)+'">'+o.valor+'</option>';})).join("");
+  document.getElementById("inpRot").innerHTML='<option value="">Selecione rota...</option>'+((OPC.rota||[]).map(function(o){return'<option value="'+esc(o.valor)+'">'+o.valor+'</option>';})).join("");
   renderWdays();renderChips("hab");renderChips("rot");
   var tb=document.querySelector("#tblTec tbody");tb.innerHTML='<tr><td colspan="6" class="empty">Carregando...</td></tr>';
   fetchTecnicos().then(function(list){

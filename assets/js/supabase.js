@@ -34,7 +34,9 @@
     ['relatorio_tecnico',     'Relatório Técnico'],
     ['data_encerramento',     'Data Encerramento'],
     ['link_atividades',       'Link Gerador de atividades'],
-    ['observacoes',           'Observações']
+    ['observacoes',           'Observações'],
+    ['habilidade',            'Habilidade'],
+    ['rota',                  'Rota']
   ];
   var DATE_COLS = { data_abertura: 1, data_encerramento: 1, data_prevista: 1 };
 

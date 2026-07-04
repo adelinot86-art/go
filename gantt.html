@@ -11,6 +11,7 @@
 <script src="assets/js/config.js"></script>
 <script src="assets/js/supabase.js"></script>
 <script src="assets/js/coords.js"></script>
+<script src="assets/js/theme.js"></script>
 <style>
 :root{--bg:#0a0a0f;--card:#15151f;--card2:#1a1a24;--s1:rgba(255,255,255,.06);--s2:rgba(255,255,255,.12);
   --tx:#f5f3ea;--dm:#a8a596;--df:#6b6857;--gold:#f5c542;--gold2:#e0a818;--amber:#ffb020;--cream:#fff8e6;
@@ -82,6 +83,10 @@ h1 i{color:var(--gold)}
 .gtrack{position:relative;flex:1;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.045) 0 1px,transparent 1px);background-size:var(--pxh) 100%;transition:background-color .12s}
 .gtrack.dragover{background-color:rgba(245,197,66,.08)}
 .shade{position:absolute;top:0;bottom:0;background:rgba(0,0,0,.32);pointer-events:none;z-index:0}
+.pastshade{position:absolute;left:0;top:0;bottom:0;background:rgba(0,0,0,.30);pointer-events:none;z-index:0}
+.nowline{position:absolute;top:0;bottom:0;width:2px;background:#ff5d6c;pointer-events:none;z-index:1;box-shadow:0 0 7px rgba(255,93,108,.7)}
+.nowline::before{content:"";position:absolute;top:-2px;left:-4px;width:10px;height:10px;border-radius:50%;background:#ff5d6c}
+.blk.lock{cursor:not-allowed;opacity:.9}
 .folgabar{position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,93,108,.12) 0 9px,rgba(255,93,108,.03) 9px 18px);display:flex;align-items:center;justify-content:center;color:#ff9aa4;font-size:11px;font-weight:800;letter-spacing:2px;pointer-events:none;z-index:0}
 .blk{position:absolute;height:30px;border:1px solid;border-radius:7px;padding:0 7px;display:flex;align-items:center;gap:5px;
   font-size:11px;white-space:nowrap;overflow:hidden;cursor:grab;transition:.12s;color:var(--tx)}
@@ -265,13 +270,16 @@ function render(){
       var s=minInicio(c.agendado_em);var left=Math.max(0,s/60*PXH);var w=Math.max(36,(c.duracao_min||60)/60*PXH);
       var col=corEstado(estado(c.status));
       var titulo="#"+c.num_chamado+" · "+fmtHora(c.agendado_em)+" · "+(c.tipo_atendimento||"")+" · "+cap(c.municipio||"");
-      return '<div class="blk'+(SEL===c.id?' sel':'')+'" data-id="'+c.id+'" draggable="true" ondragstart="arrastar(event,'+c.id+')" style="left:'+left+'px;width:'+w+'px;top:'+(c._lane*34+5)+'px;background:'+col+'26;border-color:'+col+'" onclick="selecionar('+c.id+')" title="'+esc(titulo)+'"><b>#'+c.num_chamado+'</b> '+esc((c.tipo_atendimento||"").substring(0,22))+'</div>';
+      var trav=noPassado(c);
+      return '<div class="blk'+(SEL===c.id?' sel':'')+(trav?' lock':'')+'" data-id="'+c.id+'" draggable="'+(trav?'false':'true')+'" ondragstart="arrastar(event,'+c.id+')" style="left:'+left+'px;width:'+w+'px;top:'+(c._lane*34+5)+'px;background:'+col+'26;border-color:'+col+'" onclick="selecionar('+c.id+')" title="'+esc(titulo)+'"><b>#'+c.num_chamado+'</b> '+esc((c.tipo_atendimento||"").substring(0,20))+(trav?' <i class="fa-solid fa-lock" style="margin-left:auto;font-size:9px;opacity:.75"></i>':'')+'</div>';
     }).join("");
     var disp=dispDoDia(t),overlay="",totMin=(H1-H0)*60;
     if(disp.folga)overlay='<div class="folgabar">FOLGA</div>';
     else{var iniM=Math.max(0,Math.min(totMin,disp.ini)),fimM=Math.max(0,Math.min(totMin,disp.fim));
       if(iniM>0)overlay+='<div class="shade" style="left:0;width:'+(iniM/60*PXH)+'px"></div>';
       if(fimM<totMin)overlay+='<div class="shade" style="left:'+(fimM/60*PXH)+'px;width:'+((totMin-fimM)/60*PXH)+'px"></div>';}
+    if(ehHoje()){var nowM=Math.max(0,Math.min(totMin,(new Date().getHours()-H0)*60+new Date().getMinutes())),nx=nowM/60*PXH;
+      overlay+='<div class="pastshade" style="width:'+nx+'px"></div><div class="nowline" style="left:'+nx+'px"></div>';}
     var nomeJs=(t.nome||"").replace(/'/g,"\\'");
     rows+='<div class="grow" style="height:'+rowH+'px">'+
       '<div class="glabel"><span class="dot" style="background:'+(t.cor||"#4d9fff")+'"></span>'+
@@ -323,26 +331,43 @@ function limparFiltros(){["fNum","fMun","fDep","fSt","fData"].forEach(function(i
 /* ===== ARRASTAR-SOLTAR ===== */
 function arrastar(e,id){e.dataTransfer.setData("text/plain",String(id));e.dataTransfer.effectAllowed="move";}
 function permitir(e){e.preventDefault();e.dataTransfer.dropEffect="move";}
+function ehHoje(){return DIA===isoHoje();}
+function noPassado(c){return ehHoje() && c && c.agendado_em && (new Date(c.agendado_em) < new Date());}
 function temHabilidade(tec,c){
-  var habs=(tec&&tec.habilidades)||[];if(!habs.length)return true; // sem habilidades cadastradas: não bloqueia
+  var habs=(tec&&tec.habilidades)||[];
+  var reqH=((c&&c.habilidade)||"").trim();
+  if(reqH){return !habs.length || habs.some(function(h){return nm(h)===nm(reqH);});}
+  // fallback heurístico pelo tipo/departamento quando o chamado não tem habilidade definida
+  if(!habs.length)return true;
   var tipo=nm(c&&c.tipo_atendimento||""),dep=nm(c&&c.departamento||"");
   if(!tipo&&!dep)return true;
   return habs.some(function(h){var hn=nm(h);if(!hn)return false;if(tipo&&(tipo.indexOf(hn)>=0||hn.indexOf(tipo)>=0))return true;if(dep&&dep.indexOf(hn)>=0)return true;return false;});
 }
+function temRota(tec,c){var rots=(tec&&tec.rotas)||[];var reqR=((c&&c.rota)||"").trim();if(!reqR||!rots.length)return true;return rots.some(function(r){return nm(r)===nm(reqR);});}
 function soltar(e,nome){
   e.preventDefault();e.currentTarget.classList.remove("dragover");
   var id=parseInt(e.dataTransfer.getData("text/plain"),10);if(!id)return;
   var c=CHAMADOS.find(function(x){return x.id===id;});
   var tec=TECNICOS.find(function(t){return t.nome===nome;});
-  if(tec&&c&&!temHabilidade(tec,c)){
-    if(!confirm('O técnico "'+nome+'" não tem habilidade compatível com "'+(c.tipo_atendimento||"—")+'".\nAtribuir mesmo assim?'))return;
-  }
+  // trava: não move atividade que já está no passado
+  if(noPassado(c)){alert("Esta atividade já passou na linha do tempo e está travada.");return;}
+  // bloqueio: técnico de folga neste dia
+  if(tec && dispDoDia(tec).folga){alert('O técnico "'+nome+'" está de FOLGA neste dia. Não é possível atribuir atividades.');return;}
   var rect=e.currentTarget.getBoundingClientRect();
   var x=e.clientX-rect.left;
   var mins=Math.max(0,Math.round((x/PXH*60)/15)*15);
   var h=H0+Math.floor(mins/60),m=mins%60;if(h>=H1){h=H1-1;m=45;}
   var hora=("0"+h).slice(-2)+":"+("0"+m).slice(-2);
   var iso=new Date(DIA+"T"+hora+":00").toISOString();
+  // bloqueio: não agendar no passado (linha do tempo já passou)
+  if(ehHoje() && new Date(iso) < new Date()){alert("Não é possível agendar antes do horário atual (a linha do tempo já passou desse ponto).");return;}
+  // aviso (soft): habilidade/rota incompatível
+  if(tec && c){
+    var faltas=[];
+    if(!temHabilidade(tec,c))faltas.push('habilidade "'+(c.habilidade||c.tipo_atendimento||"—")+'"');
+    if(!temRota(tec,c))faltas.push('rota "'+(c.rota||"—")+'"');
+    if(faltas.length && !confirm('O técnico "'+nome+'" não atende: '+faltas.join(" e ")+'.\nAtribuir mesmo assim?'))return;
+  }
   var dur=(c&&c.duracao_min)||60;
   atribuirAgendar(id,nome,iso,dur).then(function(rec){
     var i=CHAMADOS.findIndex(function(x){return x.id===id;});if(i>=0)CHAMADOS[i]=rec;
@@ -391,6 +416,7 @@ function atualizarDetalhe(id){
     'Município: <b>'+cap(c.municipio||"—")+'</b>'+(c.num_inep?' · INEP '+esc(c.num_inep):'')+'<br>'+
     'Departamento: '+esc(c.departamento||"—")+'<br>'+
     'Tipo: '+esc(c.tipo_atendimento||"—")+'<br>'+
+    ((c.habilidade||c.rota)?('Habilidade: '+esc(c.habilidade||"—")+' · Rota: '+esc(c.rota||"—")+'<br>'):'')+
     'Status: <b>'+esc(c.status||"—")+'</b>'+(c.prioridade?' · '+esc(c.prioridade):'')+'<br>'+
     'Técnico: <b>'+esc(c.tecnico||"—")+'</b><br>'+
     'Aberto em: '+abertura+(c.data_prevista?' · previsto: '+esc(c.data_prevista):'')+'<br>'+
@@ -398,10 +424,12 @@ function atualizarDetalhe(id){
     (c.encerrado_por?('Encerrado por: <b>'+esc(c.encerrado_por)+'</b><br>'):'')+
     (c.relatorio_tecnico?('<div style="margin-top:6px;padding:8px;background:rgba(255,255,255,.04);border-radius:8px;color:var(--tx)">📝 '+esc(c.relatorio_tecnico)+'</div>'):'')+
     (co?'':'<span style="color:var(--re)">⚠ município sem coordenada no mapa</span><br>')+
-    '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'+
-      '<button class="btn ghost sm" onclick="abrirAg('+c.id+')"><i class="fa-regular fa-calendar-check"></i> '+(c.agendado_em?'Reagendar':'Agendar')+'</button>'+
-      (c.agendado_em?'<button class="btn ghost sm" onclick="removerHorario('+c.id+')"><i class="fa-solid fa-xmark"></i> Remover horário</button>':'')+
-    '</div>';
+    (noPassado(c)
+      ? '<div style="margin-top:10px;color:var(--df)"><i class="fa-solid fa-lock"></i> Atividade no passado — travada (não pode reagendar/remover).</div>'
+      : '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'+
+          '<button class="btn ghost sm" onclick="abrirAg('+c.id+')"><i class="fa-regular fa-calendar-check"></i> '+(c.agendado_em?'Reagendar':'Agendar')+'</button>'+
+          (c.agendado_em?'<button class="btn ghost sm" onclick="removerHorario('+c.id+')"><i class="fa-solid fa-xmark"></i> Remover horário</button>':'')+
+        '</div>');
 }
 function infoTecnico(nome){
   var t=TECNICOS.find(function(x){return x.nome===nome;});if(!t)return;
@@ -503,8 +531,15 @@ function resequenciar(){
 }
 
 /* ===== INIT ===== */
+function tickNow(){
+  if(!ehHoje())return;
+  var totMin=(H1-H0)*60,nx=Math.max(0,Math.min(totMin,(new Date().getHours()-H0)*60+new Date().getMinutes()))/60*PXH;
+  document.querySelectorAll(".nowline").forEach(function(el){el.style.left=nx+"px";});
+  document.querySelectorAll(".pastshade").forEach(function(el){el.style.width=nx+"px";});
+}
 window.addEventListener("load",function(){
   requireAuth().then(function(user){ if(!user)return; carregar(); });
+  setInterval(tickNow,60000);
 });
 </script>
 </body>

@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css">
+<script src="assets/js/theme.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <!-- Supabase (banco de dados + autenticação) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -855,6 +856,8 @@ var CAD_FIELDS=[
   {col:"Base de Atendimento",tipo:"combo",grupo:"Local"},
   {col:"Técnico Responsável",tipo:"combo",grupo:"Atendimento"},
   {col:"Tipo de Atendimento",tipo:"combo",grupo:"Atendimento"},
+  {col:"Habilidade",lbl:"Habilidade necessária",tipo:"combo",grupo:"Atendimento"},
+  {col:"Rota",tipo:"combo",grupo:"Atendimento"},
   {col:"Status",tipo:"combo",grupo:"Atendimento"},
   {col:"Prioridade",tipo:"combo",grupo:"Atendimento"},
   {col:"Data Prevista",tipo:"date",grupo:"Atendimento"},
@@ -874,7 +877,9 @@ var CAMPO_DE={
   "Prioridade":"prioridade",
   "Técnico Responsável":"tecnico",
   "Município":"municipio",
-  "Materiais":"materiais"
+  "Materiais":"materiais",
+  "Habilidade":"habilidade",
+  "Rota":"rota"
 };
 var OPCOES={};          // preenchido no init via fetchOpcoes()
 var TECNICOS_NOMES=[];  // nomes dos técnicos ativos (tabela tecnicos)
